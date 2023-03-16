@@ -165,15 +165,14 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  "The weighted version of ebp is only available with the
                  ''parametric'' bootstrap."))
   }
-  if(is.null(weights) && !is.null(type_weights)) {
+  if (is.null(weights) && type_weights == "nlme") {
     stop(strwrap(prefix = " ", initial = "",
-                 paste0("If you want to use the survey weights with weighting
-                        type ", type_weights, " please provide the name of a
-                        numeric variable indicating weights in the sample data
-                        to the argument weights.")))
+                  paste0("If you want to use the survey weights with weighting
+                         type ", type_weights, " please provide the name of a
+                         numeric variable indicating weights in the sample data
+                         to the argument weights.")))
   }
-  if (!(type_weights == "NULL" || type_weights == "nlme" ||
-        type_weights == "Guadarrama")) {
+  if (!(type_weights == "nlme" || type_weights == "Guadarrama")) {
     stop(strwrap(prefix = " ", initial = "",
                  "The two options for types of survey weights are ''nlme'',
                  ''Guadarrama''."))

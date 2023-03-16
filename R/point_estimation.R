@@ -48,7 +48,7 @@ point_estim <- function(framework,
   # See Molina and Rao (2010) p. 374
   # lme function is included in the nlme package which is imported.
 
-  if(framework$type_weights == "nlme" & is.null(framework$weights) == FALSE) {
+  if(!is.null(framework$weights) && framework$type_weights == "nlme") {
 
     transformation_par$transformed_data$weights_scaled <-
       framework$smp_data[,framework$weights] /
@@ -154,7 +154,7 @@ model_par <- function(framework,
                       mixed_model,
                       fixed,
                       transformation_par) {
-  if (is.null(framework$weights) | framework$type_weights == "nlme") {
+  if (is.null(framework$weights) || framework$type_weights == "nlme") {
 
     # fixed parametersn
     betas <- nlme::fixed.effects(mixed_model)
@@ -265,7 +265,7 @@ model_par <- function(framework,
 gen_model <- function(fixed,
                       framework,
                       model_par) {
-  if (is.null(framework$weights) | framework$type_weights == "nlme") {
+  if (is.null(framework$weights) || framework$type_weights == "nlme") {
     # Parameter for calculating variance of new random effect
     gamma <- model_par$sigmau2est / (model_par$sigmau2est +
       model_par$sigmae2est / framework$n_smp)

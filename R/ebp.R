@@ -106,7 +106,7 @@
 #' weights are available (i) EBP under informative sampling from
 #' \cite{Guadarrama et al. (2018)} ("Guadarrama"); (ii) considering survey
 #' weights by using the weighting options of \code{\link{nlme}} from
-#' \cite{Pinheiro and Bates (2023)} ("nlme"). Defaults to \code{NULL}.
+#' \cite{Pinheiro and Bates (2023)} ("nlme"). Defaults to \code{"Guadarrama"}.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -253,7 +253,7 @@ ebp <- function(fixed,
                 weights = NULL,
                 pop_weights = NULL,
                 aggregate_to = NULL,
-                type_weights = NULL
+                type_weights = "Guadarrama"
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
