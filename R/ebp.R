@@ -102,7 +102,7 @@
 #' population data that indicates the target domain level for which the
 #' results are to be displayed. The variable can be numeric or a factor.
 #' Defaults to \code{NULL}.
-#' @param type_weights a character string. Two different methods for survey
+#' @param weights_type a character string. Two different methods for survey
 #' weights are available (i) EBP under informative sampling from
 #' \cite{Guadarrama et al. (2018)} ("Guadarrama"); (ii) considering survey
 #' weights by using the weighting options of \code{\link{nlme}} from
@@ -253,7 +253,9 @@ ebp <- function(fixed,
                 weights = NULL,
                 pop_weights = NULL,
                 aggregate_to = NULL,
-                type_weights = "Guadarrama"
+                weights_type = "Guadarrama",
+                benchmark = NULL,
+                benchmark_type = "raking"
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
@@ -265,7 +267,7 @@ ebp <- function(fixed,
     interval = interval, MSE = MSE, boot_type = boot_type, B = B,
     custom_indicator = custom_indicator, cpus = cpus, seed = seed,
     na.rm = na.rm, weights = weights, pop_weights = pop_weights,
-    type_weights = type_weights
+    weights_type = weights_type
   )
 
   # Save function call ---------------------------------------------------------
@@ -297,7 +299,7 @@ ebp <- function(fixed,
     na.rm = na.rm,
     weights = weights,
     pop_weights = pop_weights,
-    type_weights = type_weights
+    weights_type = weights_type
   )
 
 

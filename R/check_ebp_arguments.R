@@ -48,7 +48,7 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L) {
 
 ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                        custom_indicator, cpus, seed, na.rm, weights,
-                       pop_weights, type_weights) {
+                       pop_weights, weights_type) {
   if (!is.null(threshold) && !(is.numeric(threshold) &&
     length(threshold) == 1) && !inherits(threshold, "function")) {
     stop(strwrap(prefix = " ", initial = "",
@@ -165,14 +165,14 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  "The weighted version of ebp is only available with the
                  ''parametric'' bootstrap."))
   }
-  if (is.null(weights) && type_weights == "nlme") {
+  if (is.null(weights) && weights_type == "nlme") {
     stop(strwrap(prefix = " ", initial = "",
                   paste0("If you want to use the survey weights with weighting
-                         type ", type_weights, " please provide the name of a
+                         type ", weights_type, " please provide the name of a
                          numeric variable indicating weights in the sample data
                          to the argument weights.")))
   }
-  if (!(type_weights == "nlme" || type_weights == "Guadarrama")) {
+  if (!(weights_type == "nlme" || weights_type == "Guadarrama")) {
     stop(strwrap(prefix = " ", initial = "",
                  "The two options for types of survey weights are ''nlme'',
                  ''Guadarrama''."))
