@@ -4,12 +4,12 @@
 \alias{benchmark}
 \title{Benchmark Function}
 \usage{
-benchmark(object, benchmark, share, type = "raking", overwrite = FALSE)
+benchmark(point_estim, framework, benchmark, benchmark_type)
 }
 \arguments{
-\item{object}{an object of type "fh".}
-
 \item{benchmark}{a number determining the benchmark value.}
+
+\item{object}{an object of type "fh".}
 
 \item{share}{a vector containing the shares of the population size per area
 and the total population size (N_d/N).Values must be sorted like the domains

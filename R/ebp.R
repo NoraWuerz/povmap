@@ -107,6 +107,12 @@
 #' \cite{Guadarrama et al. (2018)} ("Guadarrama"); (ii) considering survey
 #' weights by using the weighting options of \code{\link{nlme}} from
 #' \cite{Pinheiro and Bates (2023)} ("nlme"). Defaults to \code{"Guadarrama"}.
+#' @param benchmark a named vector containing the numeric benchmark value(s).
+#' The names of the vector matchs to the chosen indicators. Benchmarking is
+#' available for \code{"Mean"} and \code{"Head_Count"}.
+#' @param benchmark_type a character indicating the type of benchmarking. Types
+#' that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
+#' ("\code{ratio}"). Defaults to "\code{raking}"
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -315,6 +321,14 @@ ebp <- function(fixed,
     keep_data = TRUE
   )
 
+  # benchmarking
+  if (!is.null(benchmark)) {
+    point_estim$ind <- benchmark(
+      point_estim = point_estim,
+      framework = framework,
+      benchmark = benchmark,
+      benchmark_type = benchmark_type)
+  }
 
 
   # MSE Estimation -------------------------------------------------------------
@@ -332,7 +346,9 @@ ebp <- function(fixed,
       B = B,
       boot_type = boot_type,
       parallel_mode = parallel_mode,
-      cpus = cpus
+      cpus = cpus,
+      benchmark = benchmark,
+      benchmark_type = benchmark_type
     )
 
 
