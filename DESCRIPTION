@@ -7,7 +7,7 @@ Description: An extions of the package emdi that supports estimating, assessing 
 Depends:
     R (>= 4.2.0)
 License: GPL-2
-URL: https://github.com/SoerenPannier/emdi
+URL: https://github.com/NoraWuerz/povmap
 LazyData: true
 Encoding: UTF-8
 Copyright: inst/COPYRIGHTS
