@@ -190,6 +190,14 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  "The three options for types of survey weights are
                  ''Guadarrama'', ''nlme'', ''nlme_lambda''."))
   }
+  if (transformation %in% c("no", "log") && weights_type == "nlme_lambda") {
+    stop(strwrap(prefix = " ", initial = "",
+                 paste0("If you want to use the survey weights with weighting
+                        type ", weights_type, " please choose a data-driven
+                        transformation ('box.cox', 'dual', 'log.shift') in
+                        agrument transformation or use weights_type = 'nlme'
+                        to use nlme weights for the estimation.")))
+  }
   if (is.character(pop_weights) && length(pop_weights) != 1 ||
       !is.character(pop_weights) && !is.null(pop_weights)) {
     stop(strwrap(prefix = " ", initial = "",
