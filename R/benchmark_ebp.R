@@ -1,4 +1,11 @@
-benchmark <- function (point_estim, framework, benchmark, benchmark_type) {
+# Internal documentation -------------------------------------------------------
+
+# Benchmark function for the EBP
+
+# This function is called within the EBP-function and the agruments benchmark
+# and benchmark_type are documented there.
+
+benchmark_ebp <- function (point_estim, framework, benchmark, benchmark_type) {
 
   if (is.list(point_estim)) {
     estim <- as.list(point_estim$ind[names(benchmark)])
@@ -15,9 +22,9 @@ benchmark <- function (point_estim, framework, benchmark, benchmark_type) {
 
   for(i in names(benchmark)) {
 
-    if (type == "raking") {
+    if (benchmark_type == "raking") {
       EBP_bench[[i]] <- estim[[i]] + benchmark[[i]] - sum(share * estim[[i]])
-    } else if (type == "ratio") {
+    } else if (benchmark_type == "ratio") {
       phi <- share / estim[[i]]
       EBP_bench[[i]] <- estim[[i]] + (1 / (sum(share^2 / phi))) *
         (benchmark[[i]] - sum(share * estim[[i]])) * (share / phi)

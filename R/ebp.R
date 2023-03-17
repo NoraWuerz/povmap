@@ -273,7 +273,8 @@ ebp <- function(fixed,
     interval = interval, MSE = MSE, boot_type = boot_type, B = B,
     custom_indicator = custom_indicator, cpus = cpus, seed = seed,
     na.rm = na.rm, weights = weights, pop_weights = pop_weights,
-    weights_type = weights_type
+    weights_type = weights_type, benchmark = benchmark,
+    benchmark_type = benchmark_type
   )
 
   # Save function call ---------------------------------------------------------
@@ -323,11 +324,19 @@ ebp <- function(fixed,
 
   # benchmarking
   if (!is.null(benchmark)) {
-    point_estim$ind <- benchmark(
+    point_estim$ind <- benchmark_ebp(
       point_estim = point_estim,
       framework = framework,
       benchmark = benchmark,
       benchmark_type = benchmark_type)
+    if (any(names(benchmark) %in% c("Head_Count"))) {
+      if(!all(point_estim$ind$Head_Count_bench >= 0 &
+            point_estim$ind$Head_Count_bench <= 1)){
+        message(strwrap(prefix = " ", initial = "",
+                        "Please note that benchmark point estimates for
+                        Head_Count are without the expected range [0,1]."))
+      }
+    }
   }
 
 

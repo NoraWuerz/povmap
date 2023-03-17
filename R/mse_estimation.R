@@ -240,7 +240,7 @@ mse_estim <- function(framework,
 
   # benchmark
   if (!is.null(benchmark)) {
-    bootstrap_point_estim <- benchmark(
+    bootstrap_point_estim <- benchmark_ebp(
       point_estim = bootstrap_point_estim,
       framework = framework,
       benchmark = benchmark,
