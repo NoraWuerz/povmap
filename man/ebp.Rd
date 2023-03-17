@@ -142,7 +142,10 @@ Defaults to \code{NULL}.}
 weights are available (i) EBP under informative sampling from
 \cite{Guadarrama et al. (2018)} ("Guadarrama"); (ii) considering survey
 weights by using the weighting options of \code{\link{nlme}} from
-\cite{Pinheiro and Bates (2023)} ("nlme"). Defaults to \code{"Guadarrama"}.}
+\cite{Pinheiro and Bates (2023)} ("nlme"); (iii) considering survey
+weights by using the weighting options of \code{\link{nlme}} and use these
+weights also to determine the optimal transformation parameter lambda
+("nlme_lambda"). Defaults to \code{"Guadarrama"}.}
 
 \item{benchmark}{a named vector containing the numeric benchmark value(s).
 The names of the vector matchs to the chosen indicators. Benchmarking is

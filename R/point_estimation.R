@@ -29,7 +29,8 @@ point_estim <- function(framework,
     smp_data = framework$smp_data,
     smp_domains = framework$smp_domains,
     transformation = transformation,
-    interval = interval
+    interval = interval,
+    framework = framework
   )
 
   # Data_transformation function returns transformed data and shift parameter.
@@ -48,7 +49,8 @@ point_estim <- function(framework,
   # See Molina and Rao (2010) p. 374
   # lme function is included in the nlme package which is imported.
 
-  if(!is.null(framework$weights) && framework$weights_type == "nlme") {
+  if(!is.null(framework$weights) &&
+     any(framework$weights_type %in% c("nlme", "nlme_lambda"))) {
 
     transformation_par$transformed_data$weights_scaled <-
       framework$smp_data[,framework$weights] /
@@ -154,8 +156,9 @@ model_par <- function(framework,
                       mixed_model,
                       fixed,
                       transformation_par) {
-                      
-  if (is.null(framework$weights) || framework$weights_type == "nlme") {
+
+  if (is.null(framework$weights) ||
+      any(framework$weights_type %in% c("nlme", "nlme_lambda"))) {
 
     # fixed parametersn
     betas <- nlme::fixed.effects(mixed_model)
@@ -267,7 +270,8 @@ gen_model <- function(fixed,
                       framework,
                       model_par) {
 
-  if (is.null(framework$weights) || framework$weights_type == "nlme") {
+  if (is.null(framework$weights) ||
+      any(framework$weights_type %in% c("nlme", "nlme_lambda"))) {
 
     # Parameter for calculating variance of new random effect
     gamma <- model_par$sigmau2est / (model_par$sigmau2est +
