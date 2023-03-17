@@ -49,6 +49,7 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L) {
 ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                        custom_indicator, cpus, seed, na.rm, weights,
                        pop_weights, weights_type, benchmark, benchmark_type) {
+
   if (!is.null(threshold) && !(is.numeric(threshold) &&
     length(threshold) == 1) && !inherits(threshold, "function")) {
     stop(strwrap(prefix = " ", initial = "",
@@ -122,8 +123,18 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                    custom_indicator as a list of functions. For help see
                    Example 2 in help(ebp)."))
     }
+
     N_custom <- length(custom_indicator)
     for (i in seq_len(N_custom)) {
+      if(!is.null(pop_weights)) {
+        if(!all(c("y", "pop_weights") %in%
+                names(formals(custom_indicator[[i]])))) {
+          stop(strwrap(prefix = " ", initial = "",
+                     "Please provide the argument pop_weights to the your
+                     custom_indicator. All other indicators will be
+                     calculated using population weights."))
+        }
+      }
       if (!inherits(custom_indicator[[i]], "function")) {
         stop(strwrap(prefix = " ", initial = "",
                      "The elements of the list need to be functions. These
@@ -132,8 +143,8 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                      threshold might not included in the indicator. For help
                      see Example 2 in help(ebp)."))
       } else if (inherits(custom_indicator[[i]], "function") &&
-        !all(names(formals(custom_indicator[[i]])) ==
-          c("y", "weights", "threshold"))) {
+        !all(names(formals(custom_indicator[[i]])) %in%
+          c("y", "pop_weights", "threshold"))) {
         stop(strwrap(prefix = " ", initial = "",
                      "Functions for custom indicators need to have exactly the
                      following two arguments: y, weights, threshold; even though
@@ -165,6 +176,7 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  "The weighted version of ebp is only available with the
                  ''parametric'' bootstrap."))
   }
+  
   if (is.null(weights) && weights_type == "nlme") {
     stop(strwrap(prefix = " ", initial = "",
                   paste0("If you want to use the survey weights with weighting

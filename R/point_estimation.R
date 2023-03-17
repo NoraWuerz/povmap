@@ -154,6 +154,7 @@ model_par <- function(framework,
                       mixed_model,
                       fixed,
                       transformation_par) {
+                      
   if (is.null(framework$weights) || framework$weights_type == "nlme") {
 
     # fixed parametersn
@@ -265,7 +266,9 @@ model_par <- function(framework,
 gen_model <- function(fixed,
                       framework,
                       model_par) {
+
   if (is.null(framework$weights) || framework$weights_type == "nlme") {
+
     # Parameter for calculating variance of new random effect
     gamma <- model_par$sigmau2est / (model_par$sigmau2est +
       model_par$sigmae2est / framework$n_smp)
@@ -370,7 +373,7 @@ monte_carlo <- function(transformation,
               nrow = N_dom_pop_tmp,
               data = unlist(mapply(
                 y = split(population_vector, pop_domains_vec_tmp),
-                w = split(pop_weights_vec, pop_domains_vec_tmp),
+                pop_weight = split(pop_weights_vec, pop_domains_vec_tmp),
                 f,
                 threshold = framework$threshold
               )), byrow = TRUE
