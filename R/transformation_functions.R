@@ -122,6 +122,7 @@ std_data_transformation <- function(fixed = fixed, smp_data, transformation,
 back_transformation <- function(y, transformation, lambda, shift,
                                 framework, fixed) {
 
+
   back_transformed <- if (transformation == "no") {
     no_transform_back(y = y)
   } else if (transformation == "log") {
@@ -400,11 +401,17 @@ inv_orderNorm_trans <- function(orderNorm_obj, new_points_x_t, warn) {
   browser()
   x_t <- orderNorm_obj$x.t
   old_points <- orderNorm_obj$x
-  vals <- approx(x_t, old_points, xout = new_points_x_t, rule = 1) # rule 1 or 2
+  vals <- suppressWarnings(approx(x_t, old_points, xout = new_points_x_t,
+                                  rule = 1))
 
   # If predictions have been made outside observed domain
   if (any(is.na(vals$y))) {
-    if(warn) warning('Transformations requested outside observed domain; logit approx. on ranks applied')
+    if (warn) {
+      warning(strwrap(prefix = " ", initial = "",
+      paste0('The ordernom transformation within a Monte Carlo replication
+             requested ', sum(is.na(vals$y)), ' values outside the observed
+             domain. Therefore, the logit approx. on ranks is applied.')))
+    }
 
     fit <- orderNorm_obj$fit
     p <- qnorm(fitted(fit, type = "response"))

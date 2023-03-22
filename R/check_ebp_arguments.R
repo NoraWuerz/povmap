@@ -165,7 +165,8 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  weights in the sample data. See also help(ebp)."))
   }
   if (!is.null(weights) && weights_type == "Guadarrama" &&
-      !(transformation == "log" || transformation == "no")) {
+      !(transformation == "log" || transformation == "no" ||
+        transformation == "ordernorm")) {
     stop(strwrap(prefix = " ", initial = "",
                  "Weighted ebp with weights_type == 'Guadarrama' can only be
                  used without transformation or the log-transformation."))
