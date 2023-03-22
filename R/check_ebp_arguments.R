@@ -66,13 +66,12 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  selected as threshold. See also help(ebp)."))
   }
   if (is.null(transformation) || !(transformation == "box.cox" ||
-    transformation == "log" ||
-    transformation == "dual" ||
-    transformation == "log.shift" ||
-    transformation == "no")) {
+    transformation == "log" || transformation == "dual" ||
+    transformation == "log.shift" || transformation == "no" ||
+    transformation == "ordernorm")) {
     stop(strwrap(prefix = " ", initial = "",
                  "The five options for transformation are ''no'', ''log'',
-                 ''box.cox'', ''dual'' or ''log.shift''."))
+                 ''box.cox'', ''dual'', ''log.shift'', ''ordernorm''."))
   }
   if (any(interval != "default") & (!is.vector(interval, mode = "numeric") ||
     length(interval) != 2 || !(interval[1] < interval[2]))) {
@@ -190,7 +189,8 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  "The three options for types of survey weights are
                  ''Guadarrama'', ''nlme'', ''nlme_lambda''."))
   }
-  if (transformation %in% c("no", "log") && weights_type == "nlme_lambda") {
+  if (transformation %in% c("no", "log", "ordernorm") &&
+      weights_type == "nlme_lambda") {
     stop(strwrap(prefix = " ", initial = "",
                  paste0("If you want to use the survey weights with weighting
                         type ", weights_type, " please choose a data-driven

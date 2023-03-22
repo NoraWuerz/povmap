@@ -18,6 +18,7 @@ parametric_bootstrap <- function(framework,
                                  cpus,
                                  benchmark,
                                  benchmark_type) {
+
   message("\r", "Bootstrap started                                            ")
   if (boot_type == "wild") {
     res_s <- residuals(point_estim$model)
@@ -139,7 +140,8 @@ mse_estim <- function(framework,
       shift = shift,
       transformation = transformation,
       res_s = res_s,
-      fitted_s = fitted_s
+      fitted_s = fitted_s,
+      fixed = fixed
     )
   } else {
     superpop <- superpopulation(
@@ -148,7 +150,8 @@ mse_estim <- function(framework,
       gen_model = gen_model,
       lambda = lambda,
       shift = shift,
-      transformation = transformation
+      transformation = transformation,
+      fixed = fixed
     )
   }
   pop_income_vector <- superpop$pop_income_vector
@@ -256,7 +259,7 @@ mse_estim <- function(framework,
 # The model parameter from the nested error linear regression model are
 # used to contruct a superpopulation model.
 superpopulation_wild <- function(framework, model_par, gen_model, lambda,
-                                 shift, transformation, res_s, fitted_s) {
+                                 shift, transformation, res_s, fitted_s, fixed){
   # rescaling the errors
   res_s <- sqrt(model_par$sigmae2est) * (res_s - mean(res_s)) / sd(res_s)
 
@@ -286,7 +289,9 @@ superpopulation_wild <- function(framework, model_par, gen_model, lambda,
     y = Y_pop_b,
     transformation = transformation,
     lambda = lambda,
-    shift = shift
+    shift = shift,
+    framework = framework,
+    fixed = fixed
   )
   Y_pop_b[!is.finite(Y_pop_b)] <- 0
 
@@ -294,7 +299,7 @@ superpopulation_wild <- function(framework, model_par, gen_model, lambda,
 }
 
 superpopulation <- function(framework, model_par, gen_model, lambda, shift,
-                            transformation) {
+                            transformation, fixed) {
   # superpopulation individual errors
   eps <- vector(length = framework$N_pop)
   eps[framework$obs_dom] <- rnorm(
@@ -316,7 +321,9 @@ superpopulation <- function(framework, model_par, gen_model, lambda, shift,
     y = Y_pop_b,
     transformation = transformation,
     lambda = lambda,
-    shift = shift
+    shift = shift,
+    framework = framework,
+    fixed = fixed
   )
   Y_pop_b[!is.finite(Y_pop_b)] <- 0
 
@@ -325,13 +332,8 @@ superpopulation <- function(framework, model_par, gen_model, lambda, shift,
 
 # Bootstrap function -----------------------------------------------------------
 
-bootstrap_par <- function(fixed,
-                          transformation,
-                          framework,
-                          model_par,
-                          lambda,
-                          shift,
-                          vu_tmp) {
+bootstrap_par <- function(fixed, transformation, framework, model_par, lambda,
+                          shift, vu_tmp) {
   # Bootstrap sample individual error term
   eps <- rnorm(framework$N_smp, 0, sqrt(model_par$sigmae2est))
   # Bootstrap sample random effect
@@ -347,7 +349,9 @@ bootstrap_par <- function(fixed,
     y = Y_smp_b,
     transformation = transformation,
     lambda = lambda,
-    shift = shift
+    shift = shift,
+    framework = framework,
+    fixed = fixed
   )
   Y_smp_b[!is.finite(Y_smp_b)] <- 0
 
@@ -358,15 +362,9 @@ bootstrap_par <- function(fixed,
   return(bootstrap_sample = bootstrap_smp)
 }
 
-bootstrap_par_wild <- function(fixed,
-                               transformation,
-                               framework,
-                               model_par,
-                               lambda,
-                               shift,
-                               vu_tmp,
-                               res_s,
-                               fitted_s) {
+bootstrap_par_wild <- function(fixed, transformation, framework, model_par,
+                               lambda, shift, vu_tmp, res_s, fitted_s) {
+
   # rescaling sample individual error term
   res_s <- sqrt(model_par$sigmae2est) * (res_s - mean(res_s)) / sd(res_s)
   # Bootstrap sample individual error term
@@ -387,7 +385,9 @@ bootstrap_par_wild <- function(fixed,
     y = Y_smp_b,
     transformation = transformation,
     lambda = lambda,
-    shift = shift
+    shift = shift,
+    framework = framework,
+    fixed = fixed
   )
   Y_smp_b[!is.finite(Y_smp_b)] <- 0
 

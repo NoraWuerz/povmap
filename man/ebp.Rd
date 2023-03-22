@@ -74,7 +74,8 @@ be chosen.}
 types for the dependent variable can be chosen (i) no transformation ("no");
 (ii) log transformation ("log"); (iii) Box-Cox transformation ("box.cox");
 (iv) Dual transformation ("dual"); (v) Log-Shift transformation
-("log.shift"). Defaults to \code{"box.cox"}.}
+("log.shift"); (Vi) rank-order transformation ("ordernorm"). Defaults to
+\code{"box.cox"}.}
 
 \item{interval}{a string equal to 'default' or a numeric vector containing a
 lower and upper limit determining an interval for the estimation of the
