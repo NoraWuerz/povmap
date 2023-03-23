@@ -326,6 +326,7 @@ ebp <- function(fixed,
     point_estim$ind <- benchmark_ebp(
       point_estim = point_estim,
       framework = framework,
+      fixed = fixed,
       benchmark = benchmark,
       benchmark_type = benchmark_type)
     if (any(names(benchmark) %in% c("Head_Count"))) {
@@ -337,6 +338,7 @@ ebp <- function(fixed,
       }
     }
   }
+
 
 
   # MSE Estimation -------------------------------------------------------------
