@@ -144,9 +144,14 @@ weights are available (i) EBP under informative sampling from
 weights by using the weighting options of \code{\link{nlme}} from
 \cite{Pinheiro and Bates (2023)} ("nlme"). Defaults to \code{"Guadarrama"}.}
 
-\item{benchmark}{a named vector containing the numeric benchmark value(s).
-The names of the vector matchs to the chosen indicators. Benchmarking is
-available for \code{"Mean"} and \code{"Head_Count"}.}
+\item{benchmark}{The input depends on the type of benchmarking to be
+performed.
+(i) Benchmarking with a fixed value: a named vector containing the numeric
+benchmark value(s). The names of the vector matchs to the chosen indicators.
+Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.
+(ii) Benchmarking with the survey data: a vector containing the names of the
+chosen indicators. In this case, survey weights (\code{weights}) are needed.
+Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.}
 
 \item{benchmark_type}{a character indicating the type of benchmarking. Types
 that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
