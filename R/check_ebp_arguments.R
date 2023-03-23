@@ -176,7 +176,7 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  "The weighted version of ebp is only available with the
                  ''parametric'' bootstrap."))
   }
-  
+
   if (is.null(weights) && weights_type == "nlme") {
     stop(strwrap(prefix = " ", initial = "",
                   paste0("If you want to use the survey weights with weighting
@@ -198,40 +198,69 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  help(ebp)."))
   }
   if (!is.null(benchmark)) {
-    if (!is.numeric(benchmark)){
+    if (!(is.numeric(benchmark) || is.character(benchmark))){
       stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. The names of the
-                   vector matchs to the chosen indicators."))
+                   "For fixed value: Benchmark must be a named vector
+                   containing the numeric benchmark value(s) and is of class
+                   numeric. The names of the vector matchs to the chosen
+                   indicators. \n For survey values: Benchmark must be a
+                   vector of class character containing the names of the chosen
+                   indicators."))
     }
-    if (!length(benchmark) %in% 1:2) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Benchmarking is
-                   supplied for the Mean and the Head_Count ratio. Therefore,
-                   the length of benchmark must be 1 or 2. The names of this
-                   vector indicates whether the Mean, the Head_Count, or
-                   both in which order are supplied."))
+    if (is.numeric(benchmark)) {
+      if (!length(benchmark) %in% 1:2) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the length of benchmark must be 1 or 2. The names of this
+                     vector indicates whether the Mean, the Head_Count, or
+                     both in which order are supplied."))
+      }
+      if (is.null(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Please provide
+                     names."))
+      }
+      if (!length(benchmark) == length(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Each numeric must
+                     be labeled. Therefore, benchmark and names(benchmark) have
+                     the same length."))
+      }
+      if (!all(names(benchmark) %in% c("Mean", "Head_Count"))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names must match with 'Mean' and 'Head_Count'."))
+      }
     }
-    if (is.null(names(benchmark))) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Please provide
-                   names."))
-    }
-    if (!length(benchmark) == length(names(benchmark))) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Each numeric must
-                   be labeled. Therefore, benchmark and names(benchmark) have
-                   the same length."))
-    }
-    if (!all(names(benchmark) %in% c("Mean", "Head_Count"))) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Benchmarking is
-                   supplied for the Mean and the Head_Count ratio. Therefore,
-                   the names must match with 'Mean' and 'Head_Count'."))
+    if (is.character(benchmark)) {
+      if(!length(benchmark) %in% 1:2) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a vector of class character containing
+                     the names of the chosen indicators. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the length of benchmark must be 1 or 2. The vector
+                     indicates whether the Mean, the Head_Count, or both in
+                     which order are supplied."))
+      }
+      if (!all(benchmark %in% c("Mean", "Head_Count"))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a vector of class character containing
+                     the names of the chosen indicators. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     it must match with 'Mean' and 'Head_Count'."))
+      }
+      if (is.null(weights)) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "The argument benchmark indicates that it is benchmarked
+                     with the survey data. Please provide weights through the
+                     argument weights."))
+      }
     }
   }
   if (benchmark_type != "raking") {
