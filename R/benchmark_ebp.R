@@ -90,18 +90,12 @@ benchmark_ebp_national <- function (point_estim, framework, fixed, benchmark,
 benchmark_ebp_level <- function (point_estim, framework, fixed, benchmark,
                                  benchmark_type, benchmark_level) {
 
-<<<<<<< HEAD
+
   if (!(is.numeric(benchmark) || is.data.frame(benchmark))) {
 
     benchmark_ <- data.frame(unique(framework$pop_data[[benchmark_level]]),
                              rep(NA, length(benchmark)))
-=======
 
-  if (!(is.numeric(benchmark) || is.data.frame(benchmark))) {
-
-    benchmark_ <- data.frame(unique(framework$pop_data[[benchmark_level]]),
-                             NA, NA)
->>>>>>> 81b80e6a8e28faef4dd21b5d598a21d99f84fa7d
     names(benchmark_) <- c(benchmark_level, benchmark)
 
     if (is.list(point_estim)) {# for point_estimation.R
@@ -199,10 +193,7 @@ benchmark_ebp_level <- function (point_estim, framework, fixed, benchmark,
 
   names(EBP_bench) <- c(paste0(names(benchmark)[-1],"_bench"))
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 81b80e6a8e28faef4dd21b5d598a21d99f84fa7d
   if (is.list(point_estim)) {
     point_estim_bench <- data.frame(point_estim$ind, EBP_bench)
   } else {
