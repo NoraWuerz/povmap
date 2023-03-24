@@ -265,7 +265,11 @@ ebp <- function(fixed,
                 aggregate_to = NULL,
                 weights_type = "Guadarrama",
                 benchmark = NULL,
-                benchmark_type = "raking"
+                benchmark_type = "raking",
+                lmecontrol_maxiter = 1000,
+                lmecontrol_option  = "optim",
+                lmecontrol_returnObject = FALSE, 
+                lmecontrol_tolerance = 1e-6
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
@@ -310,7 +314,11 @@ ebp <- function(fixed,
     na.rm = na.rm,
     weights = weights,
     pop_weights = pop_weights,
-    weights_type = weights_type
+    weights_type = weights_type, 
+    lmecontrol_maxiter = lmecontrol_maxiter,
+    lmecontrol_option  = lmecontrol_option,
+    lmecontrol_returnObject = lmecontrol_returnObject,
+    lmecontrol_tolerance = lmecontrol_tolerance
   )
 
 

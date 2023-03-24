@@ -48,6 +48,8 @@ point_estim <- function(framework,
   # See Molina and Rao (2010) p. 374
   # lme function is included in the nlme package which is imported.
 
+ 
+  
   if(!is.null(framework$weights) && framework$weights_type == "nlme") {
 
     transformation_par$transformed_data$weights_scaled <-
@@ -59,6 +61,11 @@ point_estim <- function(framework,
       random =
         as.formula(paste0("~ 1 | as.factor(",framework$smp_domains, ")")),
       method = "REML",
+      control = nlme::lmeControl(maxiter = framework$lmecontrol_maxiter,
+                                 opt     = framework$lmecontrol_option,
+                                 returnObject = framework$lmecontrol_returnObject,
+                                 tolerance = framework$lmecontrol_tolerance
+      ),
       keep.data = keep_data,
       weights =
         varComb(
@@ -75,6 +82,11 @@ point_estim <- function(framework,
       random =
         as.formula(paste0("~ 1 | as.factor(",framework$smp_domains, ")")),
       method = "REML",
+      control = nlme::lmeControl(maxiter = framework$lmecontrol_maxiter,
+                                 opt     = framework$lmecontrol_option,
+                                 returnObject = framework$lmecontrol_returnObject,
+                                 tolerance = framework$lmecontrol_tolerance
+      ),
       keep.data = keep_data
     )
   }
