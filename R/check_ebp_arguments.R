@@ -48,7 +48,8 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L) {
 
 ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                        custom_indicator, cpus, seed, na.rm, weights,
-                       pop_weights, weights_type, benchmark, benchmark_type) {
+                       pop_weights, weights_type, benchmark, benchmark_type,
+                       benchmark_level) {
 
   if (!is.null(threshold) && !(is.numeric(threshold) &&
     length(threshold) == 1) && !inherits(threshold, "function")) {
@@ -198,7 +199,8 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  help(ebp)."))
   }
   if (!is.null(benchmark)) {
-    if (!(is.numeric(benchmark) || is.character(benchmark))){
+    if (!(is.numeric(benchmark) || is.character(benchmark) ||
+          is.data.frame(benchmark))){
       stop(strwrap(prefix = " ", initial = "",
                    "For fixed value: Benchmark must be a named vector
                    containing the numeric benchmark value(s) and is of class
@@ -262,6 +264,73 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                      argument weights."))
       }
     }
+    if (is.data.frame(benchmark)) {
+      if (is.null(benchmark_level)) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "As the input in benchmark is a data.frame. Fixed benchmark
+                     values are used at a lower level. Please give the name
+                     of this variable in the sample and population data
+                     by the argument benchmark_level."))
+      }
+      if (!length(benchmark) %in% 2:3) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count."))
+      }
+      if (is.null(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. Please provide names."))
+      }
+      if (!length(benchmark) == length(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. Each variable in the data.frame must
+                     be labeled."))
+      }
+      if (!all(names(benchmark)[-1] %in% c("Mean", "Head_Count"))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. No other names are possible."))
+      }
+      if (names(benchmark)[1] != benchmark_level) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. The name of the first variable indicataing
+                     the domains of the benchmark_level does not match to the
+                     argument benchmark_level."))
+      }
+    }
   }
   if (benchmark_type != "raking") {
     if (benchmark_type != "ratio") {
@@ -282,7 +351,7 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
 # Functions called in notation
 fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
                       smp_domains, aggregate_to, threshold, weights,
-                      pop_weights) {
+                      pop_weights, benchmark_level) {
   if (!all(mod_vars %in% colnames(pop_data))) {
     stop(strwrap(prefix = " ", initial = "",
                  paste0("Variable ",
@@ -347,11 +416,27 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
     }
   }
 
-  if(is.null(aggregate_to) != TRUE){
+  if (!is.null(aggregate_to)) {
     if (!(aggregate_to %in% colnames(pop_data))) {
       stop(paste0("The domain variable ", aggregate_to, " is not contained in
                   pop_data. Please provide valid variable name for the
                   aggregation."))
+    }
+  }
+
+  if (!is.null(benchmark_level)) {
+    if (!(benchmark_level %in% colnames(pop_data))) {
+      stop(paste0("The benchmark_level variable ", benchmark_level, " is not
+                  contained in pop_data. Please provide valid variable name for
+                  the benchmark level."))
+    }
+  }
+
+  if (!is.null(benchmark_level)) {
+    if (!(benchmark_level %in% colnames(smp_data))) {
+      stop(paste0("The benchmark_level variable ", benchmark_level, " is not
+                  contained in smp_data. Please provide valid variable name for
+                  the benchmark level."))
     }
   }
 
