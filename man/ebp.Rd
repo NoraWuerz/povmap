@@ -27,7 +27,8 @@ ebp(
   aggregate_to = NULL,
   weights_type = "Guadarrama",
   benchmark = NULL,
-  benchmark_type = "raking"
+  benchmark_type = "raking",
+  benchmark_level = NULL
 )
 }
 \arguments{
@@ -74,7 +75,8 @@ be chosen.}
 types for the dependent variable can be chosen (i) no transformation ("no");
 (ii) log transformation ("log"); (iii) Box-Cox transformation ("box.cox");
 (iv) Dual transformation ("dual"); (v) Log-Shift transformation
-("log.shift"). Defaults to \code{"box.cox"}.}
+("log.shift"); (Vi) rank-order transformation ("ordernorm"). Defaults to
+\code{"box.cox"}.}
 
 \item{interval}{a string equal to 'default' or a numeric vector containing a
 lower and upper limit determining an interval for the estimation of the
@@ -115,9 +117,9 @@ parallelization. Defaults to 1. For details, see
 \code{\link[parallelMap]{parallelStart}}.}
 
 \item{custom_indicator}{a list of functions containing the indicators to be
-calculated additionally. Such functions must and must only depend on the
-target variable \code{y}, \code{pop_weight} and the \code{threshold}.
-Defaults to \code{NULL}.}
+calculated additionally. Such functions must depend on the target variable
+\code{y}, and optional can depend on \code{pop_weights} and the
+\code{threshold}. Defaults to \code{NULL}.}
 
 \item{na.rm}{if \code{TRUE}, observations with \code{NA} values are deleted
 from the population and sample data. For the EBP procedure complete
@@ -147,13 +149,30 @@ weights by using the weighting options of \code{\link{nlme}} and use these
 weights also to determine the optimal transformation parameter lambda
 ("nlme_lambda"). Defaults to \code{"Guadarrama"}.}
 
-\item{benchmark}{a named vector containing the numeric benchmark value(s).
-The names of the vector matchs to the chosen indicators. Benchmarking is
-available for \code{"Mean"} and \code{"Head_Count"}.}
+\item{benchmark}{The input depends on the type of benchmarking to be
+performed.
+(i) Benchmarking with a fixed value:
+(a) with one value for each indicator: a named vector containing the numeric
+benchmark value(s). The names of the vector matchs to the chosen indicators.
+Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.
+(b) with values for the sub-level specified in the argument
+\code{benchmark_level}: a data.frame composed of a variable of class
+character containing the domain names at which the benchmarkaing is
+performed and variable(s) with benchmark value(s) of class numeric.
+Benchmarking is supplied for the Mean and the Head_Count ratio. Therefore,
+the names of the data.frame must match for the first variable the
+benchmark_level and for the other(s) to Mean and Head_Count.
+(ii) Benchmarking with the survey data: a vector containing the names of the
+chosen indicators. In this case, survey weights (\code{weights}) are needed.
+Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.}
 
 \item{benchmark_type}{a character indicating the type of benchmarking. Types
 that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
 ("\code{ratio}"). Defaults to "\code{raking}"}
+
+\item{benchmark_level}{a character indicating the level at which the
+benchmarking is performed. This name must be represented in the sample and
+population data as variable name.}
 }
 \value{
 An object of class "ebp", "emdi" that provides estimators for
@@ -250,13 +269,18 @@ emdi_model <- ebp(
 )
 
 # Example 5: With default setting using pop_weights to get weighted
-# indicators according to equivalized household size
+# indicators according to equivalized household size and an using an
+# custom_indicator using pop_weights
 emdi_model <- ebp(
   fixed = eqIncome ~ gender + eqsize + cash + self_empl +
     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
     house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
   pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
-  na.rm = TRUE, pop_weight = "eqsize"
+  custom_indicator =
+    list(HCR_singleHH = function(y, pop_weights, threshold) {
+                              mean(y[pop_weights == 1] < threshold)
+                        }
+    ), na.rm = TRUE, pop_weights = "eqsize"
 )
 }
 }

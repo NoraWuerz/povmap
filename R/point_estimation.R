@@ -120,7 +120,8 @@ point_estim <- function(framework,
     lambda = optimal_lambda,
     shift = shift_par,
     model_par = est_par,
-    gen_model = gen_par
+    gen_model = gen_par,
+    fixed = fixed
   )
 
   mixed_model$coefficients_weighted <- if (!is.null(framework$weights)) {
@@ -321,7 +322,8 @@ monte_carlo <- function(transformation,
                         lambda,
                         shift,
                         model_par,
-                        gen_model) {
+                        gen_model,
+                        fixed) {
 
   # Preparing matrices for indicators for the Monte-Carlo simulation
 
@@ -357,10 +359,11 @@ monte_carlo <- function(transformation,
       shift = shift,
       gen_model = gen_model,
       errors_gen = errors,
-      framework = framework
+      framework = framework,
+      fixed = fixed,
     )
 
-    if(is.null(framework$pop_weights) != TRUE){
+    if(!is.null(framework$pop_weights)){
       pop_weights_vec <- framework$pop_data[[framework$pop_weights]]
     }else{
       pop_weights_vec <- rep(1, nrow(framework$pop_data))
@@ -377,7 +380,7 @@ monte_carlo <- function(transformation,
               nrow = N_dom_pop_tmp,
               data = unlist(mapply(
                 y = split(population_vector, pop_domains_vec_tmp),
-                pop_weight = split(pop_weights_vec, pop_domains_vec_tmp),
+                pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
                 f,
                 threshold = framework$threshold
               )), byrow = TRUE
@@ -439,7 +442,8 @@ prediction_y <- function(transformation,
                          shift,
                          gen_model,
                          errors_gen,
-                         framework) {
+                         framework,
+                         fixed) {
 
   # predicted population income vector
   y_pred <- gen_model$mu + errors_gen$epsilon + errors_gen$vu
@@ -449,7 +453,9 @@ prediction_y <- function(transformation,
     y = y_pred,
     transformation = transformation,
     lambda = lambda,
-    shift = shift
+    shift = shift,
+    framework = framework,
+    fixed = fixed
   )
   y_pred[!is.finite(y_pred)] <- 0
 

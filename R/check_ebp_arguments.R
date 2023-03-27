@@ -48,7 +48,9 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L) {
 
 ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                        custom_indicator, cpus, seed, na.rm, weights,
-                       pop_weights, weights_type, benchmark, benchmark_type) {
+                       pop_weights, weights_type, benchmark, benchmark_type,
+                       benchmark_level) {
+
 
   if (!is.null(threshold) && !(is.numeric(threshold) &&
     length(threshold) == 1) && !inherits(threshold, "function")) {
@@ -66,13 +68,12 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  selected as threshold. See also help(ebp)."))
   }
   if (is.null(transformation) || !(transformation == "box.cox" ||
-    transformation == "log" ||
-    transformation == "dual" ||
-    transformation == "log.shift" ||
-    transformation == "no")) {
+    transformation == "log" || transformation == "dual" ||
+    transformation == "log.shift" || transformation == "no" ||
+    transformation == "ordernorm")) {
     stop(strwrap(prefix = " ", initial = "",
                  "The five options for transformation are ''no'', ''log'',
-                 ''box.cox'', ''dual'' or ''log.shift''."))
+                 ''box.cox'', ''dual'', ''log.shift'', ''ordernorm''."))
   }
   if (any(interval != "default") & (!is.vector(interval, mode = "numeric") ||
     length(interval) != 2 || !(interval[1] < interval[2]))) {
@@ -138,18 +139,17 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
       if (!inherits(custom_indicator[[i]], "function")) {
         stop(strwrap(prefix = " ", initial = "",
                      "The elements of the list need to be functions. These
-                     functions for custom indicators need to have exactly the
-                     following two arguments: y, threshold; even though a
-                     threshold might not included in the indicator. For help
-                     see Example 2 in help(ebp)."))
+                     functions for custom indicators need to have the
+                     argument y and optional the agruments pop_weights and
+                     threshold. For help see Example 2 in help(ebp)."))
       } else if (inherits(custom_indicator[[i]], "function") &&
         !all(names(formals(custom_indicator[[i]])) %in%
           c("y", "pop_weights", "threshold"))) {
         stop(strwrap(prefix = " ", initial = "",
                      "Functions for custom indicators need to have exactly the
-                     following two arguments: y, weights, threshold; even though
-                     a threshold and weights might not included in the
-                     indicator. For help see Example 2 in help(ebp)."))
+                     following argument y and optional the arguments
+                     pop_weights, threshold. For help see Example 2 in
+                     help(ebp)."))
       }
     }
   }
@@ -166,7 +166,8 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  weights in the sample data. See also help(ebp)."))
   }
   if (!is.null(weights) && weights_type == "Guadarrama" &&
-      !(transformation == "log" || transformation == "no")) {
+      !(transformation == "log" || transformation == "no" ||
+        transformation == "ordernorm")) {
     stop(strwrap(prefix = " ", initial = "",
                  "Weighted ebp with weights_type == 'Guadarrama' can only be
                  used without transformation or the log-transformation."))
@@ -190,8 +191,10 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  "The three options for types of survey weights are
                  ''Guadarrama'', ''nlme'', ''nlme_lambda''."))
   }
-  if (transformation %in% c("no", "log") && weights_type == "nlme_lambda") {
+  if (transformation %in% c("no", "log", "ordernorm") &&
+      weights_type == "nlme_lambda") {
     stop(strwrap(prefix = " ", initial = "",
+
                  paste0("If you want to use the survey weights with weighting
                         type ", weights_type, " please choose a data-driven
                         transformation ('box.cox', 'dual', 'log.shift') in
@@ -207,40 +210,137 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                  help(ebp)."))
   }
   if (!is.null(benchmark)) {
-    if (!is.numeric(benchmark)){
+    if (!(is.numeric(benchmark) || is.character(benchmark) ||
+          is.data.frame(benchmark))){
       stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. The names of the
-                   vector matchs to the chosen indicators."))
+                   "For fixed value: Benchmark must be a named vector
+                   containing the numeric benchmark value(s) and is of class
+                   numeric. The names of the vector matchs to the chosen
+                   indicators. \n For survey values: Benchmark must be a
+                   vector of class character containing the names of the chosen
+                   indicators."))
     }
-    if (!length(benchmark) %in% 1:2) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Benchmarking is
-                   supplied for the Mean and the Head_Count ratio. Therefore,
-                   the length of benchmark must be 1 or 2. The names of this
-                   vector indicates whether the Mean, the Head_Count, or
-                   both in which order are supplied."))
+    if (is.numeric(benchmark)) {
+      if (!length(benchmark) %in% 1:2) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the length of benchmark must be 1 or 2. The names of this
+                     vector indicates whether the Mean, the Head_Count, or
+                     both in which order are supplied."))
+      }
+      if (is.null(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Please provide
+                     names."))
+      }
+      if (!length(benchmark) == length(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Each numeric must
+                     be labeled. Therefore, benchmark and names(benchmark) have
+                     the same length."))
+      }
+      if (!all(names(benchmark) %in% c("Mean", "Head_Count"))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a named vector containing the numeric
+                     benchmark value(s) and is of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names must match with 'Mean' and 'Head_Count'."))
+      }
     }
-    if (is.null(names(benchmark))) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Please provide
-                   names."))
+    if (is.character(benchmark)) {
+      if(!length(benchmark) %in% 1:2) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a vector of class character containing
+                     the names of the chosen indicators. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the length of benchmark must be 1 or 2. The vector
+                     indicates whether the Mean, the Head_Count, or both in
+                     which order are supplied."))
+      }
+      if (!all(benchmark %in% c("Mean", "Head_Count"))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a vector of class character containing
+                     the names of the chosen indicators. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     it must match with 'Mean' and 'Head_Count'."))
+      }
+      if (is.null(weights)) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "The argument benchmark indicates that it is benchmarked
+                     with the survey data. Please provide weights through the
+                     argument weights."))
+      }
     }
-    if (!length(benchmark) == length(names(benchmark))) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Each numeric must
-                   be labeled. Therefore, benchmark and names(benchmark) have
-                   the same length."))
-    }
-    if (!all(names(benchmark) %in% c("Mean", "Head_Count"))) {
-      stop(strwrap(prefix = " ", initial = "",
-                   "Benchmark must be a named vector containing the numeric
-                   benchmark value(s) and is of class numeric. Benchmarking is
-                   supplied for the Mean and the Head_Count ratio. Therefore,
-                   the names must match with 'Mean' and 'Head_Count'."))
+    if (is.data.frame(benchmark)) {
+      if (is.null(benchmark_level)) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "As the input in benchmark is a data.frame. Fixed benchmark
+                     values are used at a lower level. Please give the name
+                     of this variable in the sample and population data
+                     by the argument benchmark_level."))
+      }
+      if (!length(benchmark) %in% 2:3) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count."))
+      }
+      if (is.null(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. Please provide names."))
+      }
+      if (!length(benchmark) == length(names(benchmark))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. Each variable in the data.frame must
+                     be labeled."))
+      }
+      if (!all(names(benchmark)[-1] %in% c("Mean", "Head_Count"))) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. No other names are possible."))
+      }
+      if (names(benchmark)[1] != benchmark_level) {
+        stop(strwrap(prefix = " ", initial = "",
+                     "Benchmark must be a data.frame composed of a variable
+                     of class character containing the domain names at which the
+                     benchmarkaing is performed and variable(s) with
+                     benchmark value(s) of class numeric. Benchmarking is
+                     supplied for the Mean and the Head_Count ratio. Therefore,
+                     the names of the data.frame must match for the first
+                     variable the benchmark_level and for the other(s) to Mean
+                     and Head_Count. The name of the first variable indicataing
+                     the domains of the benchmark_level does not match to the
+                     argument benchmark_level."))
+      }
     }
   }
   if (benchmark_type != "raking") {
@@ -262,7 +362,7 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
 # Functions called in notation
 fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
                       smp_domains, aggregate_to, threshold, weights,
-                      pop_weights) {
+                      pop_weights, benchmark_level) {
   if (!all(mod_vars %in% colnames(pop_data))) {
     stop(strwrap(prefix = " ", initial = "",
                  paste0("Variable ",
@@ -319,19 +419,35 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
     }
   }
   if (is.character(weights)) {
-    if (!all(smp_data[[weights]] >= 1)) {
+    if (!all(smp_data[[weights]] >= 0)) {
       stop(strwrap(prefix = " ", initial = "",
                    paste0("Negativ or zero weights are included in ", weights,
                           " Please remove obersvations with weight values
-                          smaller than 1.")))
+                          less than or equal to zero.")))
     }
   }
 
-  if(is.null(aggregate_to) != TRUE){
+  if (!is.null(aggregate_to)) {
     if (!(aggregate_to %in% colnames(pop_data))) {
       stop(paste0("The domain variable ", aggregate_to, " is not contained in
                   pop_data. Please provide valid variable name for the
                   aggregation."))
+    }
+  }
+
+  if (!is.null(benchmark_level)) {
+    if (!(benchmark_level %in% colnames(pop_data))) {
+      stop(paste0("The benchmark_level variable ", benchmark_level, " is not
+                  contained in pop_data. Please provide valid variable name for
+                  the benchmark level."))
+    }
+  }
+
+  if (!is.null(benchmark_level)) {
+    if (!(benchmark_level %in% colnames(smp_data))) {
+      stop(paste0("The benchmark_level variable ", benchmark_level, " is not
+                  contained in smp_data. Please provide valid variable name for
+                  the benchmark level."))
     }
   }
 
@@ -343,11 +459,11 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
     }
   }
   if (is.character(pop_weights)) {
-    if (!all(pop_data[[pop_weights]] >= 1)) {
+    if (!all(pop_data[[pop_weights]] > 0)) {
       stop(strwrap(prefix = " ", initial = "",
                    paste0("Negative or zero weights are included in ",
                           pop_weights, " Please remove obersvations with weight
-                          values smaller than 1.")))
+                          values less than or equal to zero.")))
     }
   }
 
