@@ -363,7 +363,7 @@ monte_carlo <- function(transformation,
       fixed = fixed,
     )
 
-    if(is.null(framework$pop_weights) != TRUE){
+    if(!is.null(framework$pop_weights)){
       pop_weights_vec <- framework$pop_data[[framework$pop_weights]]
     }else{
       pop_weights_vec <- rep(1, nrow(framework$pop_data))
@@ -380,7 +380,7 @@ monte_carlo <- function(transformation,
               nrow = N_dom_pop_tmp,
               data = unlist(mapply(
                 y = split(population_vector, pop_domains_vec_tmp),
-                pop_weight = split(pop_weights_vec, pop_domains_vec_tmp),
+                pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
                 f,
                 threshold = framework$threshold
               )), byrow = TRUE
