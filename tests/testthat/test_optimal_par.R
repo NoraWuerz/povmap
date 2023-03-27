@@ -30,6 +30,7 @@ test_that("Does function optimal_parameter() return the benchmark lambda?", {
                         benchmark_level = NULL)
 
 
+
   optimal_lambda <- optimal_parameter(generic_opt    = generic_opt,
                                       fixed          = income~educ1,
                                       smp_data       = framework$smp_data,

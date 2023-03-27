@@ -78,7 +78,6 @@ benchmark_ebp_national <- function (point_estim, framework, fixed, benchmark,
     point_estim_bench <- as.matrix(data.frame(point_estim, EBP_bench))
   }
 
-
   return(point_estim_bench)
 }
 

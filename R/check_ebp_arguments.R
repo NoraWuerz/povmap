@@ -51,6 +51,7 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                        pop_weights, weights_type, benchmark, benchmark_type,
                        benchmark_level) {
 
+
   if (!is.null(threshold) && !(is.numeric(threshold) &&
     length(threshold) == 1) && !inherits(threshold, "function")) {
     stop(strwrap(prefix = " ", initial = "",
@@ -139,18 +140,17 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
       if (!inherits(custom_indicator[[i]], "function")) {
         stop(strwrap(prefix = " ", initial = "",
                      "The elements of the list need to be functions. These
-                     functions for custom indicators need to have exactly the
-                     following two arguments: y, threshold; even though a
-                     threshold might not included in the indicator. For help
-                     see Example 2 in help(ebp)."))
+                     functions for custom indicators need to have the
+                     argument y and optional the agruments pop_weights and
+                     threshold. For help see Example 2 in help(ebp)."))
       } else if (inherits(custom_indicator[[i]], "function") &&
         !all(names(formals(custom_indicator[[i]])) %in%
           c("y", "pop_weights", "threshold"))) {
         stop(strwrap(prefix = " ", initial = "",
                      "Functions for custom indicators need to have exactly the
-                     following two arguments: y, weights, threshold; even though
-                     a threshold and weights might not included in the
-                     indicator. For help see Example 2 in help(ebp)."))
+                     following argument y and optional the arguments
+                     pop_weights, threshold. For help see Example 2 in
+                     help(ebp)."))
       }
     }
   }
@@ -408,11 +408,11 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
     }
   }
   if (is.character(weights)) {
-    if (!all(smp_data[[weights]] >= 1)) {
+    if (!all(smp_data[[weights]] >= 0)) {
       stop(strwrap(prefix = " ", initial = "",
                    paste0("Negativ or zero weights are included in ", weights,
                           " Please remove obersvations with weight values
-                          smaller than 1.")))
+                          less than or equal to zero.")))
     }
   }
 
@@ -448,11 +448,11 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
     }
   }
   if (is.character(pop_weights)) {
-    if (!all(pop_data[[pop_weights]] >= 1)) {
+    if (!all(pop_data[[pop_weights]] > 0)) {
       stop(strwrap(prefix = " ", initial = "",
                    paste0("Negative or zero weights are included in ",
                           pop_weights, " Please remove obersvations with weight
-                          values smaller than 1.")))
+                          values less than or equal to zero.")))
     }
   }
 

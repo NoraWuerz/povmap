@@ -24,6 +24,7 @@ test_that("Does monte_carlo function give benchmark results?", {
                         weights_type = "Guadarrama",
                         benchmark_level = NULL)
 
+
   # Fixed optimal parameter and shift (benchmark values)
   ebp_optpar_bc <- read.csv2("EBP/ebp_optpar_bc.csv", sep = ",",
                              stringsAsFactors = TRUE)
