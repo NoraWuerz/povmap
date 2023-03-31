@@ -27,7 +27,8 @@ ebp(
   aggregate_to = NULL,
   weights_type = "Guadarrama",
   benchmark = NULL,
-  benchmark_type = "raking"
+  benchmark_type = "raking",
+  benchmark_level = NULL
 )
 }
 \arguments{
@@ -74,7 +75,8 @@ be chosen.}
 types for the dependent variable can be chosen (i) no transformation ("no");
 (ii) log transformation ("log"); (iii) Box-Cox transformation ("box.cox");
 (iv) Dual transformation ("dual"); (v) Log-Shift transformation
-("log.shift"). Defaults to \code{"box.cox"}.}
+("log.shift"); (Vi) rank-order transformation ("ordernorm"). Defaults to
+\code{"box.cox"}.}
 
 \item{interval}{a string equal to 'default' or a numeric vector containing a
 lower and upper limit determining an interval for the estimation of the
@@ -142,15 +144,35 @@ Defaults to \code{NULL}.}
 weights are available (i) EBP under informative sampling from
 \cite{Guadarrama et al. (2018)} ("Guadarrama"); (ii) considering survey
 weights by using the weighting options of \code{\link{nlme}} from
-\cite{Pinheiro and Bates (2023)} ("nlme"). Defaults to \code{"Guadarrama"}.}
+\cite{Pinheiro and Bates (2023)} ("nlme"); (iii) considering survey
+weights by using the weighting options of \code{\link{nlme}} and use these
+weights also to determine the optimal transformation parameter lambda
+("nlme_lambda"). Defaults to \code{"Guadarrama"}.}
 
-\item{benchmark}{a named vector containing the numeric benchmark value(s).
-The names of the vector matchs to the chosen indicators. Benchmarking is
-available for \code{"Mean"} and \code{"Head_Count"}.}
+\item{benchmark}{The input depends on the type of benchmarking to be
+performed.
+(i) Benchmarking with a fixed value:
+(a) with one value for each indicator: a named vector containing the numeric
+benchmark value(s). The names of the vector matchs to the chosen indicators.
+Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.
+(b) with values for the sub-level specified in the argument
+\code{benchmark_level}: a data.frame composed of a variable of class
+character containing the domain names at which the benchmarkaing is
+performed and variable(s) with benchmark value(s) of class numeric.
+Benchmarking is supplied for the Mean and the Head_Count ratio. Therefore,
+the names of the data.frame must match for the first variable the
+benchmark_level and for the other(s) to Mean and Head_Count.
+(ii) Benchmarking with the survey data: a vector containing the names of the
+chosen indicators. In this case, survey weights (\code{weights}) are needed.
+Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.}
 
 \item{benchmark_type}{a character indicating the type of benchmarking. Types
 that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
 ("\code{ratio}"). Defaults to "\code{raking}"}
+
+\item{benchmark_level}{a character indicating the level at which the
+benchmarking is performed. This name must be represented in the sample and
+population data as variable name.}
 }
 \value{
 An object of class "ebp", "emdi" that provides estimators for

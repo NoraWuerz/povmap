@@ -26,7 +26,9 @@ test_that("Does function optimal_parameter() return the benchmark lambda?", {
                         na.rm = TRUE,
                         pop_weights = NULL,
                         weights = NULL,
-                        weights_type = "Guadarrama")
+                        weights_type = "Guadarrama",
+                        benchmark_level = NULL)
+
 
 
   optimal_lambda <- optimal_parameter(generic_opt    = generic_opt,
@@ -34,7 +36,8 @@ test_that("Does function optimal_parameter() return the benchmark lambda?", {
                                       smp_data       = framework$smp_data,
                                       smp_domains    = framework$smp_domains,
                                       transformation = "box.cox",
-                                      interval       = c(-1,2)
+                                      interval       = c(-1,2),
+                                      framework      = framework
   )
 
   expect_equal(optimal_lambda,

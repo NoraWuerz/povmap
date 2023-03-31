@@ -46,7 +46,8 @@
 #' types for the dependent variable can be chosen (i) no transformation ("no");
 #' (ii) log transformation ("log"); (iii) Box-Cox transformation ("box.cox");
 #' (iv) Dual transformation ("dual"); (v) Log-Shift transformation
-#' ("log.shift"). Defaults to \code{"box.cox"}.
+#' ("log.shift"); (Vi) rank-order transformation ("ordernorm"). Defaults to
+#' \code{"box.cox"}.
 #' @param interval a string equal to 'default' or a numeric vector containing a
 #' lower and upper limit determining an interval for the estimation of the
 #' optimal parameter. The interval is passed to function
@@ -105,13 +106,32 @@
 #' weights are available (i) EBP under informative sampling from
 #' \cite{Guadarrama et al. (2018)} ("Guadarrama"); (ii) considering survey
 #' weights by using the weighting options of \code{\link{nlme}} from
-#' \cite{Pinheiro and Bates (2023)} ("nlme"). Defaults to \code{"Guadarrama"}.
-#' @param benchmark a named vector containing the numeric benchmark value(s).
-#' The names of the vector matchs to the chosen indicators. Benchmarking is
-#' available for \code{"Mean"} and \code{"Head_Count"}.
+#' \cite{Pinheiro and Bates (2023)} ("nlme"); (iii) considering survey
+#' weights by using the weighting options of \code{\link{nlme}} and use these
+#' weights also to determine the optimal transformation parameter lambda
+#' ("nlme_lambda"). Defaults to \code{"Guadarrama"}.
+#' @param benchmark The input depends on the type of benchmarking to be
+#' performed.
+#' (i) Benchmarking with a fixed value:
+#' (a) with one value for each indicator: a named vector containing the numeric
+#' benchmark value(s). The names of the vector matchs to the chosen indicators.
+#' Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.
+#' (b) with values for the sub-level specified in the argument
+#' \code{benchmark_level}: a data.frame composed of a variable of class
+#' character containing the domain names at which the benchmarkaing is
+#' performed and variable(s) with benchmark value(s) of class numeric.
+#' Benchmarking is supplied for the Mean and the Head_Count ratio. Therefore,
+#' the names of the data.frame must match for the first variable the
+#' benchmark_level and for the other(s) to Mean and Head_Count.
+#' (ii) Benchmarking with the survey data: a vector containing the names of the
+#' chosen indicators. In this case, survey weights (\code{weights}) are needed.
+#' Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.
 #' @param benchmark_type a character indicating the type of benchmarking. Types
 #' that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
 #' ("\code{ratio}"). Defaults to "\code{raking}"
+#' @param benchmark_level a character indicating the level at which the
+#' benchmarking is performed. This name must be represented in the sample and
+#' population data as variable name.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -237,9 +257,8 @@
 #' @importFrom parallelMap parallelStop parallelLapply parallelLibrary
 #' @importFrom parallel detectCores clusterSetRNGStream
 #' @importFrom stats as.formula dnorm lm median model.matrix na.omit optimize
-#' qnorm quantile residuals rnorm sd
+#' qnorm quantile residuals rnorm sd fitted
 #' @importFrom utils flush.console
-#' @importFrom stats fitted
 
 ebp <- function(fixed,
                 pop_data,
@@ -266,10 +285,7 @@ ebp <- function(fixed,
                 weights_type = "Guadarrama",
                 benchmark = NULL,
                 benchmark_type = "raking",
-                lmecontrol_maxiter = 1000,
-                lmecontrol_option  = "optim",
-                lmecontrol_returnObject = FALSE, 
-                lmecontrol_tolerance = 1e-6
+                benchmark_level = NULL
                 ) {
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
@@ -282,7 +298,7 @@ ebp <- function(fixed,
     custom_indicator = custom_indicator, cpus = cpus, seed = seed,
     na.rm = na.rm, weights = weights, pop_weights = pop_weights,
     weights_type = weights_type, benchmark = benchmark,
-    benchmark_type = benchmark_type
+    benchmark_type = benchmark_type, benchmark_level = benchmark_level
   )
 
   # Save function call ---------------------------------------------------------
@@ -314,11 +330,8 @@ ebp <- function(fixed,
     na.rm = na.rm,
     weights = weights,
     pop_weights = pop_weights,
-    weights_type = weights_type, 
-    lmecontrol_maxiter = lmecontrol_maxiter,
-    lmecontrol_option  = lmecontrol_option,
-    lmecontrol_returnObject = lmecontrol_returnObject,
-    lmecontrol_tolerance = lmecontrol_tolerance
+    weights_type = weights_type,
+    benchmark_level = benchmark_level
   )
 
 
@@ -336,20 +349,33 @@ ebp <- function(fixed,
 
   # benchmarking
   if (!is.null(benchmark)) {
-    point_estim$ind <- benchmark_ebp(
-      point_estim = point_estim,
-      framework = framework,
-      benchmark = benchmark,
-      benchmark_type = benchmark_type)
-    if (any(names(benchmark) %in% c("Head_Count"))) {
-      if(!all(point_estim$ind$Head_Count_bench >= 0 &
-            point_estim$ind$Head_Count_bench <= 1)){
-        message(strwrap(prefix = " ", initial = "",
-                        "Please note that benchmark point estimates for
-                        Head_Count are without the expected range [0,1]."))
-      }
+    if (is.null(benchmark_level)) {
+      point_estim$ind <- benchmark_ebp_national(
+        point_estim = point_estim,
+        framework = framework,
+        fixed = fixed,
+        benchmark = benchmark,
+        benchmark_type = benchmark_type)
+    } else {
+      point_estim$ind <- benchmark_ebp_level(
+        point_estim = point_estim,
+        framework = framework,
+        fixed = fixed,
+        benchmark = benchmark,
+        benchmark_type = benchmark_type,
+        benchmark_level = benchmark_level)
+    }
+
+    if (any(names(point_estim$ind) %in% c("Head_Count_bench"))) {
+        if(!all(point_estim$ind$Head_Count_bench >= 0 &
+              point_estim$ind$Head_Count_bench <= 1)){
+          message(strwrap(prefix = " ", initial = "",
+                          "Please note that benchmark point estimates for
+                          Head_Count are without the expected range [0,1]."))
+        }
     }
   }
+
 
 
   # MSE Estimation -------------------------------------------------------------
@@ -369,7 +395,8 @@ ebp <- function(fixed,
       parallel_mode = parallel_mode,
       cpus = cpus,
       benchmark = benchmark,
-      benchmark_type = benchmark_type
+      benchmark_type = benchmark_type,
+      benchmark_level = benchmark_level
     )
 
 
