@@ -5,23 +5,25 @@
 \title{Create Descriptive Statistics for Small Area Estimation Report}
 \usage{
 ebp_reportdescriptives(
-  ebp_object,
-  smp_weights,
-  pop_weights,
-  repvar,
-  welfare,
+  model,
+  direct,
   smp_data,
+  smp_weights = NULL,
+  pop_weights = NULL,
+  CV_level,
   pop_data,
-  threshold,
-  pop_domains,
-  smp_domains,
-  design = NULL,
-  HT = TRUE
+  threshold = NULL,
+  pop_domains
 )
 }
 \arguments{
-\item{ebp_object}{the EBP object produced from unit model estimation
-the object is of class "ebp emdi"}
+\item{model}{an object returned by the ebp function of type "emdi ebp",
+representing point and MSE estimates}
+
+\item{direct}{an object of type "direct","emdi", representing point
+and MSE estimates.}
+
+\item{smp_data}{sample data}
 
 \item{smp_weights}{the sample weight variable in the household dataset
 (i.e. the training data), include column of 1s (DO NOT LEAVE UNSPECIFIED)}
@@ -30,20 +32,19 @@ the object is of class "ebp emdi"}
 census dataset (i.e. the test data), include column of 1s (NO NOT LEAVE
 UNSPECIFIED)}
 
-\item{repvar}{the variable level at which Coefficient of Variation should be
-computed}
-
-\item{welfare}{the welfare aggregate variable or outcome variable of interest}
-
-\item{smp_data}{the survey/training data}
+\item{CV_level}{the variable level at which Coefficient of Variation should
+be computed}
 
 \item{pop_data}{the population/census/training data}
 
-\item{threshold}{the poverty line or threshold specified}
+\item{threshold}{a number defining a threshold. The  argument defaults to
+\code{NULL}. In this case, the threshold is set to 60\% of the median of the
+variable that is selected as dependent variable similary to the
+at-risk-of-poverty rate used in the EU (see also
+\cite{Social Protection  Committee 2001}). However, any desired threshold can
+be chosen.}
 
 \item{pop_domains}{the target area variable within `pop_data`}
-
-\item{smp_domains}{the target area variable within `smp_data`}
 }
 \description{
 This function estimates the coefficient of variation at level specified,
@@ -77,10 +78,10 @@ emdi_model <- ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
                            L = 2)
 
 ### model estimation
-ebp_reportdescriptives(ebp_object = emdi_model,
+ebp_reportdescriptives(model = emdi_model,
                       smp_weights = "weight",
                       pop_weights = "popweights",
-                      repvar = "state",
+                      CV_level = "state",
                       welfare = "eqIncome",
                       smp_data = eusilcA_smp2,
                       pop_data = eusilcA_pop2,

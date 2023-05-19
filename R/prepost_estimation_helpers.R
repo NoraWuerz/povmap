@@ -17,12 +17,15 @@
 #' UNSPECIFIED)
 #' @param CV_level the variable level at which Coefficient of Variation should
 #' be computed
-#' @param welfare the welfare aggregate variable or outcome variable of interest
-#' @param smp_data the survey/training data
+#' @param smp_data
 #' @param pop_data the population/census/training data
-#' @param threshold the poverty line or threshold specified
 #' @param pop_domains the target area variable within `pop_data`
-#' @param smp_domains the target area variable within `smp_data`
+#' @param threshold  a number defining a threshold. The  argument defaults to
+#' \code{NULL}. In this case, the threshold is set to 60\% of the median of the
+#' variable that is selected as dependent variable similary to the
+#' at-risk-of-poverty rate used in the EU (see also
+#' \cite{Social Protection  Committee 2001}). However, any desired threshold can
+#' be chosen.
 #'
 #' @examples
 #' data("eusilcA_pop2")
@@ -68,56 +71,47 @@
 
 ebp_reportdescriptives <- function(model,
                                    direct,
-                                   smp_weights,
-                                   pop_weights,
-                                   CV_level,
-                                   welfare,
                                    smp_data,
+                                   smp_weights = NULL,
+                                   pop_weights = NULL,
+                                   CV_level,
                                    pop_data,
-                                   threshold,
-                                   pop_domains,
-                                   smp_domains){
+                                   threshold = NULL,
+                                   pop_domains){
+  #browser()
 
-  ###get list of variables
+  if (is.null(threshold)) {
+    threshold <- 0.6 * median(smp_data[[paste(model$fixed[2])]])
+    message(strwrap(prefix = " ", initial = "",
+                    paste0("The threshold for the HCR and the PG is
+                          automatically set to 60% of the median of the
+                          dependent variable and equals ", threshold)))
+  }
+
   hh_varlist <- colnames(model$framework$smp_data)
-  pop_varlist <- hh_varlist[!(hh_varlist %in% c(welfare, smp_weights))]
+  pop_varlist <- hh_varlist[!(hh_varlist %in% c(paste(model$fixed[2]),
+                                                smp_weights))]
 
-  ### subset the survey and census data
+  # subset the survey and census data
   smp_df <- smp_data[complete.cases(smp_data[,hh_varlist]),
                      c(hh_varlist, CV_level, smp_weights)]
   pop_df <- pop_data[complete.cases(pop_data[,pop_varlist]),
                      c(pop_varlist, CV_level, pop_weights)]
 
-
-
-  ### ---------- Estimate CV for census and survey at CV_level level --------- ###
-
-  ##### create a dataset with headcounts, MSEs for survey and census information
-  smp_doms <- unique(smp_df[[smp_domains]])
-
-  ##### quickly rename column names in the MSE section of the EBP object
-  colnames(model$MSE)[!grepl("Domain",
-                                  colnames(model$MSE))] <-
-    paste0("MSE_", colnames(model$MSE)[!grepl("Domain",
-                                                   colnames(model$MSE))])
+  # Estimate CVs
+  colnames(model$MSE)[-1] <- paste0("MSE_", colnames(model$MSE)[-1])
 
   df <- merge(x = model$MSE[, c("Domain", "MSE_Head_Count")],
               y = model$ind[, c("Domain", "Head_Count")],
               by = "Domain")
 
-
-
-  df$in_sample <- ifelse(df$Domain %in% smp_doms, 1, 0)
-
-  # df$Domain <- as.integer(as.character(df$Domain))
-
   add_df <-
     data.frame(Domain = names(tapply(smp_df[[smp_weights]],
-                                     smp_df[[smp_domains]],
+                                     smp_df[[model$framework$smp_domains]],
                                      sum,
                                      na.rm = TRUE)),
                smp_weights = tapply(smp_df[[smp_weights]],
-                                    smp_df[[smp_domains]],
+                                    smp_df[[model$framework$smp_domains]],
                                     sum,
                                     na.rm = TRUE))
 
@@ -195,19 +189,20 @@ ebp_reportdescriptives <- function(model,
   basic_df <-
     data.frame(indicator = c("Number of Units","Number of Regions",
                              "Number of Target Areas"),
-               census = c(length(pop_df[[pop_weights]][is.na(pop_df[[pop_weights]]) == FALSE]),
+               census = c(model$framework$N_pop,
                           length(unique(pop_df[[CV_level]][is.na(pop_df[[CV_level]]) == FALSE])),
-                          length(unique(pop_df[[pop_domains]][is.na(pop_df[[smp_domains]]) == FALSE]))),
+                          length(unique(pop_df[[pop_domains]][is.na(pop_df[[model$framework$smp_domains]]) == FALSE]))),
                survey = c(model$framework$N_smp,
                           length(unique(smp_df[[CV_level]][is.na(smp_df[[CV_level]]) == FALSE])),
-                          length(unique(smp_df[[smp_domains]][is.na(smp_df[[smp_domains]]) == FALSE]))))
+                          length(unique(smp_df[[model$framework$smp_domains]][is.na(smp_df[[model$framework$smp_domains]]) == FALSE]))))
   #round(sum(pop_df[[pop_weights]], na.rm = TRUE)),
 
   basic_df$census <- as.integer(basic_df$census)
   basic_df$survey <- as.integer(basic_df$survey)
 
   ##### compute poverty numbers
-  smp_data$poor <- ifelse(smp_data[[welfare]] < threshold, 1, 0)
+  smp_data$poor <- ifelse(model$framework$smp_data[[paste(model$fixed[2])]] <
+                            threshold, 1, 0)
 
   smp_data[[smp_weights]] <-
     smp_data[[smp_weights]] / sum(smp_data[[smp_weights]],
