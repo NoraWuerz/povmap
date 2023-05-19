@@ -350,7 +350,6 @@ ebp_reportcoef_table <- function(model,
   colnames(varname_dt) <- "Variable"
 
   coef_dt <- as.data.frame(coef(summary(model$model)))
-
   coef_dt <- cbind(varname_dt, coef_dt)
 
   coef_dt$Sig <- ifelse(coef_dt$`p-value` < 0.001, "***",
@@ -444,8 +443,6 @@ ebp_reportcoef_table <- function(model,
 #'                  pop_weights = "popweights",
 #'                  number_to_list = 10,
 #'                  head = FALSE)
-#'
-#'
 #'
 #' @export
 

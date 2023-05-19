@@ -4,22 +4,24 @@
 \alias{ebp_test_means}
 \title{Perform test for difference between survey and census means}
 \usage{
-ebp_test_means(smp_data, pop_data, varlist, smp_weights, pop_weights)
+ebp_test_means(varlist, smp_data, pop_data, weights = NULL, pop_weights = NULL)
 }
 \arguments{
-\item{smp_data}{the survey/training data}
+\item{varlist}{character vector, the set of variables of interest}
 
-\item{pop_data}{the population/census/training data}
+\item{smp_data}{the survey data}
 
-\item{varlist}{character vector, the set of variables of interest
-(ensure all factor variables are converted into integers to avoid error messages)}
+\item{pop_data}{the population data}
 
-\item{smp_weights}{the sample weight variable in the household dataset
-(i.e. the training data), include column of 1s (DO NOT LEAVE UNSPECIFIED)}
+\item{weights}{a character string containing the name of a variable that
+indicates weights in the sample data. If a character string is provided
+a weighted version of the ebp will be used. The variable has to be numeric.
+Defaults to \code{NULL}.}
 
-\item{pop_weights}{the population weight variable in the census (or synthetic)
-census dataset (i.e. the test data), include column of 1s (NO NOT LEAVE
-UNSPECIFIED)}
+\item{pop_weights}{a character string containing the name of a variable that
+indicates population weights in the populatation data. If a character string
+is provided weighted indicators are estimated using population weights.
+The variable has to be numeric. Defaults to \code{NULL}.}
 }
 \description{
 This function computes weighted means of the same set of variables within the
@@ -27,36 +29,19 @@ census and the survey. A test for difference of the means are performed for
 each variable with two-tailed p-values returned.
 }
 \examples{
-data("eusilcA_pop2")
-data("eusilcA_smp2")
+data("eusilcA_pop")
+data("eusilcA_smp")
 
-#### set of variables used in model estimation
 variables <- c("gender", "eqsize", "cash", "self_empl",
-              "unempl_ben", "age_ben", "surv_ben",
-              "sick_ben", "dis_ben", "rent", "fam_allow",
-              "house_allow", "cap_inv", "tax_adj")
+               "unempl_ben", "age_ben", "surv_ben",
+               "sick_ben", "dis_ben", "rent", "fam_allow",
+               "house_allow", "cap_inv", "tax_adj")
 
-### estimate a unit model
-emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-                                                                         collapse= "+"))),
-                           pop_data = eusilcA_pop2,
-                           pop_domains = "district",
-                           smp_data = eusilcA_smp2,
-                           smp_domains = "district",
-                           na.rm = TRUE,
-                           weights = "weight",
-                           pop_weights = "popweights",
-                           MSE = TRUE,
-                           threshold = 11000,
-                           B = 2,
-                           L = 2)
-
-### model estimation
 ebp_test_means(varlist = variables,
-              smp_weights = "weight",
-              pop_weights = "popweights",
-              smp_data = eusilcA_smp2,
-              pop_data = eusilcA_pop2)
-
+               pop_data = eusilcA_pop,
+               smp_data = eusilcA_smp,
+               weights = "weight",
+               pop_weights = "eqsize"
+               )
 
 }

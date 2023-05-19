@@ -88,6 +88,4 @@ ebp_report_byrank(ebp_object = emdi_model,
                  number_to_list = 10,
                  head = FALSE)
 
-
-
 }

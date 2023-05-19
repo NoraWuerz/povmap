@@ -4,11 +4,11 @@
 \alias{ebp_reportcoef_table}
 \title{Produce coefficient table for reporting}
 \usage{
-ebp_reportcoef_table(ebp_object, decimals = 3)
+ebp_reportcoef_table(model, decimals = 3)
 }
 \arguments{
-\item{ebp_object}{the EBP object produced from by EMDI from unit model estimation
-the object is of class "ebp emdi"}
+\item{model}{an object returned by the ebp function of type "emdi ebp",
+representing point and MSE estimates}
 
 \item{decimals}{the number of decimals to report on coefficient estimates}
 }
@@ -20,27 +20,14 @@ model results having specified the number of decimal places.
 data("eusilcA_pop")
 data("eusilcA_smp")
 
-#### set of variables used in model estimation
-variables <- c("gender", "eqsize", "cash", "self_empl",
-              "unempl_ben", "age_ben", "surv_ben",
-              "sick_ben", "dis_ben", "rent", "fam_allow",
-              "house_allow", "cap_inv", "tax_adj")
+ebp_model <- ebp(
+ fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+   unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+   house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+ pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+ na.rm = TRUE
+ )
 
-### estimate a unit model
-emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-                                                                         collapse= "+"))),
-                           pop_data = eusilcA_pop2,
-                           pop_domains = "district",
-                           smp_data = eusilcA_smp2,
-                           smp_domains = "district",
-                           na.rm = TRUE,
-                           weights = "weight",
-                           pop_weights = "popweights",
-                           MSE = TRUE,
-                           threshold = 11000,
-                           B = 2,
-                           L = 2)
-
-ebp_reportcoef_table(emdi_model, 4)
+ebp_reportcoef_table(ebp_model, 4)
 
 }
