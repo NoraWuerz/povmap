@@ -17,7 +17,7 @@
 #' UNSPECIFIED)
 #' @param CV_level the variable level at which Coefficient of Variation should
 #' be computed
-#' @param smp_data
+#' @param smp_data sample data
 #' @param pop_data the population/census/training data
 #' @param pop_domains the target area variable within `pop_data`
 #' @param threshold  a number defining a threshold. The  argument defaults to
@@ -66,7 +66,6 @@
 #'
 #'
 #' @export
-#' @importFrom
 
 
 ebp_reportdescriptives <- function(model,
@@ -229,83 +228,68 @@ ebp_reportdescriptives <- function(model,
 #' census and the survey. A test for difference of the means are performed for
 #' each variable with two-tailed p-values returned.
 #'
-#' @param smp_data the survey/training data
-#' @param pop_data the population/census/training data
 #' @param varlist character vector, the set of variables of interest
-#' (ensure all factor variables are converted into integers to avoid error messages)
-#' @param smp_weights the sample weight variable in the household dataset
-#' (i.e. the training data), include column of 1s (DO NOT LEAVE UNSPECIFIED)
-#' @param pop_weights the population weight variable in the census (or synthetic)
-#' census dataset (i.e. the test data), include column of 1s (NO NOT LEAVE
-#' UNSPECIFIED)
+#' @param pop_data the population data
+#' @param smp_data the survey data
+#' @param weights a character string containing the name of a variable that
+#' indicates weights in the sample data. If a character string is provided
+#' a weighted version of the ebp will be used. The variable has to be numeric.
+#' Defaults to \code{NULL}.
+#' @param pop_weights a character string containing the name of a variable that
+#' indicates population weights in the populatation data. If a character string
+#' is provided weighted indicators are estimated using population weights.
+#' The variable has to be numeric. Defaults to \code{NULL}.
 #'
 #' @examples
-#' data("eusilcA_pop2")
-#' data("eusilcA_smp2")
+#' data("eusilcA_pop")
+#' data("eusilcA_smp")
 #'
-#' #### set of variables used in model estimation
-#'variables <- c("gender", "eqsize", "cash", "self_empl",
-#'               "unempl_ben", "age_ben", "surv_ben",
-#'               "sick_ben", "dis_ben", "rent", "fam_allow",
-#'               "house_allow", "cap_inv", "tax_adj")
+#' variables <- c("gender", "eqsize", "cash", "self_empl",
+#'                "unempl_ben", "age_ben", "surv_ben",
+#'                "sick_ben", "dis_ben", "rent", "fam_allow",
+#'                "house_allow", "cap_inv", "tax_adj")
 #'
-#'### estimate a unit model
-#'emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-#'                                                                          collapse= "+"))),
-#'                            pop_data = eusilcA_pop2,
-#'                            pop_domains = "district",
-#'                            smp_data = eusilcA_smp2,
-#'                            smp_domains = "district",
-#'                            na.rm = TRUE,
-#'                            weights = "weight",
-#'                            pop_weights = "popweights",
-#'                            MSE = TRUE,
-#'                            threshold = 11000,
-#'                            B = 2,
-#'                            L = 2)
-#'
-#'### model estimation
-#'ebp_test_means(varlist = variables,
-#'               smp_weights = "weight",
-#'               pop_weights = "popweights",
-#'               smp_data = eusilcA_smp2,
-#'               pop_data = eusilcA_pop2)
-#'
+#' ebp_test_means(varlist = variables,
+#'                pop_data = eusilcA_pop,
+#'                smp_data = eusilcA_smp,
+#'                weights = "weight",
+#'                pop_weights = "eqsize"
+#'                )
 #'
 #' @export
 
-ebp_test_means <- function(smp_data,
+ebp_test_means <- function(varlist,
+                           smp_data,
                            pop_data,
-                           varlist,
-                           smp_weights,
-                           pop_weights){
+                           weights = NULL,
+                           pop_weights = NULL){
 
-  ### get the set of complete cases of the variables as
-  ### would have been used in model estimation
-  smp_df <- smp_data[complete.cases(smp_data[,c(varlist, smp_weights)]),
-                     c(varlist, smp_weights)]
+  if (is.null(weights)) {
+    smp_data$weights <- rep(1, nrow(smp_data))
+    weights <- "weights"
+  }
+
+  if (is.null(pop_weights)) {
+    pop_data$pop_weights <- rep(1, nrow(pop_data))
+    pop_weights <- "pop_weights"
+  }
+
+  smp_df <- smp_data[complete.cases(smp_data[,c(varlist, weights)]),
+                     c(varlist, weights)]
   pop_df <- pop_data[complete.cases(pop_data[,c(varlist, pop_weights)]),
                      c(varlist, pop_weights)]
 
-  weighted.sd <- function(x, w){
-
-    delta_sq <- (x - mean(x))^2 ##square deviation of the xs
-
-    nzero_w <- (length(w[w > 0]) - 1) / length(w[w > 0])
-
-    result <- sqrt(sum(w * (delta_sq)) / (nzero_w * sum(w)))
-
-    return(result)
-  }
+  smp_df <- data.frame(lapply(smp_df, as.numeric))
+  pop_df <- data.frame(lapply(pop_df, as.numeric))
 
   smp_means_df <- data.frame(smp_means = apply(X = smp_df[,varlist],
                                                MARGIN = 2,
                                                FUN = weighted.mean,
-                                               w = smp_df[[smp_weights]]),
+                                               w = smp_df[[weights]]),
                              smp_sd = apply(X = smp_df[,varlist],
                                             MARGIN = 2,
                                             FUN = weighted.sd,
-                                            w = smp_df[[smp_weights]]),
+                                            w = smp_df[[weights]]),
                              variable = varlist)
 
   pop_means_df <- data.frame(pop_means = apply(X = pop_df[,varlist],
@@ -321,68 +305,51 @@ ebp_test_means <- function(smp_data,
   means_df <- merge(smp_means_df, pop_means_df, by = "variable")
 
   means_df$diff_sd <- sqrt((means_df$smp_sd)^2 + (means_df$pop_sd)^2)
-
   means_df$diff <- means_df$pop_means - means_df$smp_means
-
   means_df$zscore <- means_df$diff / means_df$diff_sd
-
   means_df$pvalue <- 2 * (1 - pnorm(abs(means_df$zscore)))
 
   return(means_df[, c("variable", "smp_means", "pop_means", "diff", "pvalue")])
 
 }
 
+
 #' Produce coefficient table for reporting
 #'
 #' This function takes the object of class 'ebp' to present the regression
 #' model results having specified the number of decimal places.
 #'
-#' @param ebp_object the EBP object produced from by EMDI from unit model estimation
-#' the object is of class "ebp emdi"
+#' @param model an object returned by the ebp function of type "emdi ebp",
+#' representing point and MSE estimates
 #' @param decimals the number of decimals to report on coefficient estimates
 #'
 #' @examples
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
-#' #### set of variables used in model estimation
-#'variables <- c("gender", "eqsize", "cash", "self_empl",
-#'               "unempl_ben", "age_ben", "surv_ben",
-#'               "sick_ben", "dis_ben", "rent", "fam_allow",
-#'               "house_allow", "cap_inv", "tax_adj")
+#'ebp_model <- ebp(
+#'  fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+#'    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+#'    house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+#'  pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+#'  na.rm = TRUE
+#'  )
 #'
-#'### estimate a unit model
-#'emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-#'                                                                          collapse= "+"))),
-#'                            pop_data = eusilcA_pop2,
-#'                            pop_domains = "district",
-#'                            smp_data = eusilcA_smp2,
-#'                            smp_domains = "district",
-#'                            na.rm = TRUE,
-#'                            weights = "weight",
-#'                            pop_weights = "popweights",
-#'                            MSE = TRUE,
-#'                            threshold = 11000,
-#'                            B = 2,
-#'                            L = 2)
-#'
-#'ebp_reportcoef_table(emdi_model, 4)
+#'ebp_reportcoef_table(ebp_model, 4)
 #'
 #' @export
 
 
-ebp_reportcoef_table <- function(ebp_object,
+ebp_reportcoef_table <- function(model,
                                  decimals = 3) {
 
-  specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k)) ### round to decimal place
+  options(scipen = 999)
 
-  options(scipen = 999) ##drop the scientific notation
-
-  varname_dt <- as.data.frame(rownames(coef(summary(ebp_object$model))))
+  varname_dt <- as.data.frame(rownames(coef(summary(model$model))))
 
   colnames(varname_dt) <- "Variable"
 
-  coef_dt <- as.data.frame(coef(summary(ebp_object$model)))
+  coef_dt <- as.data.frame(coef(summary(model$model)))
 
   coef_dt <- cbind(varname_dt, coef_dt)
 
@@ -392,29 +359,16 @@ ebp_reportcoef_table <- function(ebp_object,
                                ifelse(coef_dt$`p-value` < 0.01 &
                                         coef_dt$`p-value` >= 0.05, "*", "")))
 
-  # coef_dt[,Sig := ifelse(`p-value` < 0.001, "***",
-  #                        ifelse(`p-value` < 0.05 & `p-value` >= 0.001, "**",
-  #                               ifelse(`p-value` < 0.01 & `p-value` >= 0.05, "*", "")))]
-
   coef_dt$Value <- ifelse(coef_dt$Value < abs(0.0004999999),
                           signif(coef_dt$Value, 2),
                           specify_decimal(coef_dt$Value, decimals))
-
-  # coef_dt[,Value := ifelse(Value < abs(0.0004999999),
-  #                          signif(Value, 2),
-  #                          specify_decimal(Value, decimals))]
 
   coef_dt$StdError <- ifelse(coef_dt$Std.Error < abs(0.0004999999),
                              signif(coef_dt$Std.Error, 2),
                              specify_decimal(coef_dt$Std.Error, decimals))
 
-  # coef_dt[,StdError := ifelse(Std.Error < abs(0.0004999999),
-  #                              signif(Std.Error, 2),
-  #                              specify_decimal(Std.Error, decimals))]
-
   coef_dt$Value <- paste0(coef_dt$Value, coef_dt$Sig)
 
-  ### quick relabellings
   colnames(coef_dt)[colnames(coef_dt) %in% c("Value", "StdError")] <-
     c("coeff", "std_error")
 
@@ -1103,44 +1057,3 @@ ebp_normalityfit <- function(ebp_object){
   return(df)
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
