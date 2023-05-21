@@ -384,78 +384,71 @@ ebp_reportcoef_table <- function(model,
 #' head count rates themselves in descending order. The function allows the user
 #' to select the first/last "x" number of areas by name as well.
 #'
-#' @param ebp_object the EBP object produced from by EMDI from unit model estimation
-#' the object is of class "ebp emdi"
+#' @param model an object returned by the ebp function of type "emdi ebp".
 #' @param pop_data the population/census/training data
 #' @param pop_domains the target area variable within `pop_data`
-#' @param pop_domnames the population domain names
 #' @param pop_weights the population weight variable in the census
-#' @param byrank_indicator if argument is "count", the function ranks the product
-#' of Head_Count (from object of class `ebp`) and `pop_weights`, otherwise it
-#' the function simply ranks Head_Count output within `ebp` object
+#' @param byrank_indicator if argument is "count", the function ranks the
+#' product of Head_Count (from object of class `ebp`) and `pop_weights`,
+#' otherwise it the function simply ranks Head_Count output within `ebp` object
 #' @param number_to_list an integer, the first `number_to_list` number of
 #' target areas to produce from `byrank_indicator` ordering.
 #' @param head a logical, if `TRUE` the top `number_to_list` results will be returned
 #' and if `FALSE` the bottom `number_to_list` will be returned
 #'
 #' @examples
-#' data("eusilcA_pop2")
-#' data("eusilcA_smp2")
+#' data("eusilcA_pop")
+#' data("eusilcA_smp")
 #'
-#' #### set of variables used in model estimation
-#'variables <- c("gender", "eqsize", "cash", "self_empl",
-#'               "unempl_ben", "age_ben", "surv_ben",
-#'               "sick_ben", "dis_ben", "rent", "fam_allow",
-#'               "house_allow", "cap_inv", "tax_adj")
+#' ebp_model <- ebp(
+#'  fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+#'     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+#'     house_allow + cap_inv + tax_adj,
+#'  pop_data = eusilcA_pop, pop_domains = "district",
+#'  smp_data = eusilcA_smp, smp_domains = "district",
+#'  weights = "weight", weights_type = "nlme", na.rm = TRUE,
+#'  pop_weights = "eqsize"
+#'  )
 #'
-#'### estimate a unit model
-#'emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-#'                                                                          collapse= "+"))),
-#'                            pop_data = eusilcA_pop2,
-#'                            pop_domains = "district",
-#'                            smp_data = eusilcA_smp2,
-#'                            smp_domains = "district",
-#'                            na.rm = TRUE,
-#'                            weights = "weight",
-#'                            pop_weights = "popweights",
-#'                            MSE = TRUE,
-#'                            threshold = 11000,
-#'                            B = 2,
-#'                            L = 2)
+#' # full data of highest population below threshold by rank (descending order)
+#' ebp_report_byrank(model = ebp_model,
+#'                   pop_data = eusilcA_pop2,
+#'                   pop_domnames = "district",
+#'                   pop_weights = "popweights")
 #'
-#'### full data of highest population below threshold by rank (descending order)
-#'ebp_report_byrank(ebp_object = emdi_model,
-#'                  pop_data = eusilcA_pop2,
-#'                  pop_domnames = "district",
-#'                  pop_weights = "popweights")
+#' # full data of highest rate below threshold by rank (descending order)
+#' ebp_report_byrank(model = ebp_model,
+#'                   pop_data = eusilcA_pop,
+#'                   pop_domains = "district",
+#'                   pop_weights = "eqsize",
+#'                   byrank_indicator = "rate")
 #'
-#'### full data of highest rate below threshold by rank (descending order)
-#'ebp_report_byrank(ebp_object = emdi_model,
-#'                  pop_data = eusilcA_pop2,
-#'                  pop_domains = "district",
-#'                  pop_weights = "popweights",
-#'                  byrank_indicator = "rate")
-#'
-#'### bottom 10 poverty count below threshold by rank (in ascending order)
-#'ebp_report_byrank(ebp_object = emdi_model,
-#'                  pop_data = eusilcA_pop2,
-#'                  pop_domains = "district",
-#'                  pop_weights = "popweights",
-#'                  number_to_list = 10,
-#'                  head = FALSE)
+#'# bottom 10 poverty count below threshold by rank (in ascending order)
+#' ebp_report_byrank(model = ebp_model,
+#'                   pop_data = eusilcA_pop,
+#'                   pop_domains = "district",
+#'                   pop_weights = "eqsize",
+#'                   number_to_list = 10,
+#'                   head = FALSE)
 #'
 #' @export
 
 
-ebp_report_byrank <- function(ebp_object,
+ebp_report_byrank <- function(model,
                               pop_data,
                               pop_domains,
-                              pop_weights,
+                              pop_weights = NULL,
                               byrank_indicator = "count",
                               number_to_list = NULL,
                               head = TRUE){
 
-  ### compute population totals
+  if (is.null(pop_weights)) {
+    pop_data$pop_weights <- rep(1, nrow(pop_data))
+    pop_weights <- "pop_weights"
+  }
+
+  browser()
+  # compute population totals
   pop_data <- pop_data[, c(pop_domains, pop_weights)]
 
   result_dt <- tapply(X = pop_data[[pop_weights]],
@@ -463,51 +456,32 @@ ebp_report_byrank <- function(ebp_object,
                       FUN = sum,
                       na.rm = TRUE)
 
-  result_dt <- as.data.frame(result_dt)
+  result_dt <- data.frame(Domain = rownames(as.data.frame(result_dt)),
+                          population = as.data.frame(result_dt)[[1]])
 
-  result_dt <- data.frame(domain = rownames(result_dt),
-                          population = result_dt[[1]])
-
-  pop_data[[pop_domains]] <- as.character(pop_data[[pop_domains]])
-
-  ### include the EBP Head_Count
-
+  # include the EBP Head_Count
   result_dt <- merge(x = result_dt,
-                     y = ebp_object$ind[, c("Domain", "Head_Count")],
-                     by.x = "domain",
-                     by.y = "Domain")
-
+                     y = model$ind[, c("Domain", "Head_Count")], by = "Domain")
   result_dt$poor_count <- result_dt$Head_Count * result_dt$population
 
-  ### rank order the table as requested
+  # rank order the table as requested
   if (byrank_indicator == "count") {
-
     result_dt <- result_dt[order(-result_dt$poor_count),]
-
   } else {
-
     result_dt <- result_dt[order(-result_dt$Head_Count),]
-
   }
 
   if (is.null(number_to_list)){
-
     number_to_list <- nrow(result_dt)
-
   }
 
   if (head == TRUE) {
-
     result_dt <- head(result_dt, number_to_list)
-
   } else if (head == FALSE) {
-
     result_dt <- tail(result_dt, number_to_list)
   }
 
-
   return(result_dt)
-
 }
 
 #' Coefficient of Variation (CV) estimations for Unit EBP Model Headcount Estimates
@@ -767,11 +741,9 @@ create_calibmatrix <- function(x){
 #' model estimates as well as direct survey estimates for each of the three
 #' parameters.
 #'
-#' @param ebp_object the EBP object produced from by EMDI from unit model estimation
-#' the object is of class "ebp emdi"
+#' @param model an object returned by the ebp function of type "emdi ebp"
 #' @param smp_data a data.frame; the survey/training dataframe
 #' @param pop_data data.frame; the population/census dataframe
-#' @param welfare character; the welfare aggregate variable or outcome variable of interest
 #' @param pop_domains character; the domain variable within the population/census dataframe
 #' @param smp_domains character; the domain variable within the survey dataframe
 #' @param smp_weights character; the sample weight variable
@@ -855,10 +827,9 @@ create_calibmatrix <- function(x){
 #'  @export
 
 
-aggregate_saedirect <- function(ebp_object,
+aggregate_saedirect <- function(model,
                                 smp_data,
                                 pop_data,
-                                welfare,
                                 smp_domains,
                                 pop_domains,
                                 pop_weights,
@@ -964,7 +935,7 @@ aggregate_saedirect <- function(ebp_object,
 
   if (indicator %in% c("Head_Count", "Poverty_Gap")) {
 
-    direct_df <- as.data.frame(tapply(X = c(smp_data[[welfare]],
+    direct_df <- as.data.frame(tapply(X = c(smp_data[[model$fixed[[2]]]],
                                             smp_data[[smp_weights]]),
                                       INDEX = rep(smp_data[[smp_regions]], 2),
                                       FUN = get(function_call),
@@ -973,7 +944,7 @@ aggregate_saedirect <- function(ebp_object,
 
   } else {
 
-    direct_df <- as.data.frame(tapply(X = c(smp_data[[welfare]],
+    direct_df <- as.data.frame(tapply(X = c(smp_data[[model$fixed[[2]]]],
                                             smp_data[[smp_weights]]),
                                       INDEX = rep(smp_data[[smp_regions]], 2),
                                       FUN = get(function_call)))
@@ -994,7 +965,6 @@ aggregate_saedirect <- function(ebp_object,
 }
 
 
-
 #' Output Model fit and normality assumptions
 #'
 #'
@@ -1002,44 +972,50 @@ aggregate_saedirect <- function(ebp_object,
 #' table showing marginal R-square, conditional R-squared as well as the skewness
 #' and kurtosis of the random and idiosyncratic error terms
 #'
-#' @param ebp_object the EBP object produced from by EMDI from unit model estimation
-#' the object is of class "ebp emdi"
+#' @param model an object returned by the ebp function of type "emdi ebp"
+#'
+#' ebp_model <- ebp(
+#'  fixed = eqIncome ~ gender + eqsize + cash + self_empl +
+#'    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
+#'    house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
+#'  pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
+#'  na.rm = TRUE
+#'  )
+#'
+#'  ebp_normalityfit(model = ebp_model)
 #'
 #' @export
-#'
-#'
+#' @importFrom MuMIn r.squaredGLMM
+#' @importFrom moments skewness kurtosis
 
-ebp_normalityfit <- function(ebp_object){
+
+ebp_normalityfit <- function(model){
 
   ## compute r-squared
-  rsq_model <- ebp_object$model
+  rsq_model <- model$model
 
-  rsq_model$call$fixed <- ebp_object$fixed
+  rsq_model$call$fixed <- model$fixed
 
   rsq <- suppressWarnings(MuMIn::r.squaredGLMM(rsq_model))
 
   if (is.matrix(rsq)) {
-
     r_marginal <- rsq[1, 1]
     r_conditional <- rsq[1, 2]
-
   } else {
-
     r_marginal <- rsq[1]
     r_conditional <- rsq[2]
-
   }
 
   ## include the skewness and kurtosis as well
-  skewness_res <- moments::skewness(residuals(emdi_model$model,
+  skewness_res <- moments::skewness(residuals(model$model,
                                               level = 0,
                                               type = "pearson"))
-  kurtosis_res <- moments::kurtosis(residuals(emdi_model$model,
+  kurtosis_res <- moments::kurtosis(residuals(model$model,
                                               level = 0,
                                               type = "pearson"))
 
-  skewness_ran <- moments::skewness(ranef(emdi_model$model)$'(Intercept)')
-  kurtosis_ran <- moments::kurtosis(ranef(emdi_model$model)$'(Intercept)')
+  skewness_ran <- moments::skewness(ranef(model$model)$'(Intercept)')
+  kurtosis_ran <- moments::kurtosis(ranef(model$model)$'(Intercept)')
 
 
   df <- data.frame(indicator = c("rsq_marginal", "rsq_conditional",
