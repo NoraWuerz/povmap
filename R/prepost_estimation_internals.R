@@ -121,3 +121,45 @@ weighted.sd <- function(x, w){
 }
 
 specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+wgt.mean <- function(x, na.rm) {
+
+  x <- x[1:length(x)/2]
+  w <- x[(length(x)/2) + 1 : length(x)]
+
+  df <- data.frame(x = x,
+                   w = w)
+
+  df <- df[complete.cases(df),]
+
+  w <- df$w
+  x <- df$x
+
+  y <- sum(w * x, na.rm = na.rm) / sum(w, na.rm = na.rm)
+
+  return(y)
+
+}
+
+create_calibmatrix <- function(x){
+
+
+  unique_obs <- unique(x)
+
+  result <-
+    lapply(unique_obs,
+           function(y) {
+
+             z <- as.integer(y == x)
+
+             return(z)
+
+           })
+
+  result <- do.call(cbind, result)
+
+  colnames(result) <- unique_obs
+
+  return(result)
+
+}

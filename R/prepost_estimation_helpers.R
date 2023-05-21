@@ -830,104 +830,79 @@ create_calibmatrix <- function(x){
 aggregate_saedirect <- function(model,
                                 smp_data,
                                 pop_data,
-                                smp_domains,
                                 pop_domains,
-                                pop_weights,
+                                pop_weights = NULL,
                                 pop_regions,
                                 smp_regions,
-                                smp_weights,
-                                threshold,
+                                smp_weights = NULL,
+                                threshold = NULL,
                                 indicator,
                                 in_sample = TRUE) {
 
 
-  #### compute the small area estimates at regionvar level
+  if (is.null(threshold)) {
+    threshold <- 0.6 * median(smp_data[[paste(model$fixed[2])]])
+    message(strwrap(prefix = " ", initial = "",
+                    paste0("The threshold for the HCR and the PG is
+                          automatically set to 60% of the median of the
+                          dependent variable and equals ", threshold)))
+  }
 
-  ### include pop_weights and pop_regions in the ebp indicator dataset
-  pop_df <- pop_data[, c(pop_domains, pop_weights)]
+  if (is.null(weights)) {
+    smp_data$weights <- rep(1, nrow(smp_data))
+    weights <- "weights"
+  }
 
-  pop_df <- as.data.frame(tapply(X = pop_df[[pop_weights]],
-                                 INDEX = pop_df[[pop_domains]],
-                                 FUN = sum,
-                                 na.rm = TRUE))
+  if (is.null(pop_weights)) {
+    pop_data$pop_weights <- rep(1, nrow(pop_data))
+    pop_weights <- "pop_weights"
+  }
 
-  colnames(pop_df) <- "pop_weights"
+  browser()
 
+  pop_df <- data.frame(N_pop = tapply(X = pop_data[[pop_weights]],
+                                      INDEX = pop_data[[pop_domains]],
+                                      FUN = sum, na.rm = TRUE))
   pop_df$Domain <- rownames(pop_df)
 
   ### add indicator for in and out of sample
-  ebp_object$ind$in_sample <- ifelse(ebp_object$ind$Domain %in%
-                                       unique(smp_data[,smp_domains]),
-                                     1,
-                                     0)
+  model$ind$in_sample <- ifelse(model$ind$Domain %in%
+                                  unique(smp_data[,model$framework$smp_domains]),
+                                1, 0)
 
-  ebp_object$ind <- merge(x = ebp_object$ind,
-                          y = pop_df,
-                          by = "Domain")
+  model$ind <- merge(x = model$ind, y = pop_df, by = "Domain")
 
-  ebp_object$ind <- merge(x = ebp_object$ind,
-                          y = unique(pop_data[, c(pop_domains,
-                                                  pop_regions)]),
-                          by.x = "Domain",
-                          by.y = pop_domains)
+  model$ind <- merge(x = model$ind,
+                     y = unique(pop_data[, c(pop_domains, pop_regions)]),
+                     by.x = "Domain", by.y = pop_domains)
 
-
-  ### quick function to compute weighted mean since weighted.mean
-  ### is failing for whatever reason
-  wgt.mean <- function(x, na.rm) {
-
-    x <- x[1:length(x)/2]
-    w <- x[(length(x)/2) + 1 : length(x)]
-
-    df <- data.frame(x = x,
-                     w = w)
-
-    df <- df[complete.cases(df),]
-
-    w <- df$w
-    x <- df$x
-
-    y <- sum(w * x, na.rm = na.rm) / sum(w, na.rm = na.rm)
-
-    return(y)
-
-  }
-
-  ### regional SAE computation
+  # regional SAE computation
   if (in_sample == TRUE){
 
-    sae_df <- as.data.frame(tapply(X = c(ebp_object$ind[ebp_object$ind$in_sample == 1,
-                                                        indicator],
-                                         ebp_object$ind[ebp_object$ind$in_sample == 1,
-                                                        "pop_weights"]),
-                                   INDEX = rep(ebp_object$ind[ebp_object$ind$in_sample == 1,
-                                                          pop_regions], 2),
-                                   FUN = wgt.mean,
-                                   na.rm = TRUE))
+    sae_df <- data.frame(tapply(X = c(model$ind[model$ind$in_sample == 1,
+                                                indicator],
+                                      model$ind[model$ind$in_sample == 1,
+                                                "N_pop"]),
+                                INDEX = rep(model$ind[model$ind$in_sample == 1,
+                                                      pop_regions], 2),
+                                FUN = wgt.mean, na.rm = TRUE))
 
   } else {
 
-    sae_df <- as.data.frame(tapply(X = c(ebp_object$ind[[indicator]],
-                                         ebp_object$ind[["pop_weights"]]),
-                                   INDEX = rep(ebp_object$ind[[pop_regions]],
-                                               2),
-                                   FUN = wgt.mean,
-                                   na.rm = TRUE))
+    sae_df <- data.frame(tapply(X = c(model$ind[[indicator]],
+                                      model$ind[["N_pop"]]),
+                                INDEX = rep(model$ind[[pop_regions]], 2),
+                                FUN = wgt.mean, na.rm = TRUE))
 
   }
 
   colnames(sae_df) <- paste0("EBP_", indicator)
-
   sae_df[[pop_regions]] <- rownames(sae_df)
-
   rownames(sae_df) <- NULL
 
-  ### compute direct estimates
-  call_df <- data.frame(argument = c("Head_Count",
-                                     "Gini",
-                                     "Poverty_Gap"),
-                        call = c("compute_headcount",
-                                 "compute_gini",
+  # compute direct estimates
+  call_df <- data.frame(argument = c("Head_Count", "Gini", "Poverty_Gap"),
+                        call = c("compute_headcount", "compute_gini",
                                  "compute_gap"))
 
   function_call <- call_df[call_df$argument == indicator, "call"]
@@ -940,6 +915,29 @@ aggregate_saedirect <- function(model,
                                       INDEX = rep(smp_data[[smp_regions]], 2),
                                       FUN = get(function_call),
                                       threshold = threshold))
+
+    # indicator_list <- getIndicatorList_fixed()
+    #
+    # tapply(X = smp_data[[model$fixed[[2]]]],
+    #        INDEX = smp_data[[smp_regions]],
+    #        FUN = indicator_list$pgap_wrap,
+    #        weights = smp_data[[smp_weights]],
+    #        threshold = threshold)
+    #
+    # lapply(framework$indicator_list,
+    #        function(f, threshold) {
+    #          matrix(
+    #            nrow = N_dom_pop_tmp,
+    #            data = unlist(mapply(
+    #              y = split(population_vector, pop_domains_vec_tmp),
+    #              pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
+    #              f,
+    #              threshold = framework$threshold
+    #            )), byrow = TRUE
+    #          )
+    #        },
+    #        threshold = framework$threshold
+    # )
 
 
   } else {
