@@ -35,7 +35,7 @@
 #' data("eusilcA_smp")
 #'
 #' # estimate a unit model
-#' ebp_model <- ebp(fixed = fixed = eqIncome ~ gender + eqsize + cash +
+#' ebp_model <- ebp(fixed = eqIncome ~ gender + eqsize + cash +
 #'                     self_empl + unempl_ben + age_ben + surv_ben + sick_ben +
 #'                     dis_ben + rent + fam_allow + house_allow + cap_inv +
 #'                     tax_adj,
@@ -362,7 +362,10 @@ ebp_reportcoef_table <- function(model,
 #'
 #' @param model an object returned by the ebp function of type "emdi ebp".
 #' @param pop_data the population/census/training data
-#' @param pop_domains the target area variable within `pop_data`
+#' @param pop_domains a character string containing the name of a variable that
+#' indicates domains in the population data. The variable can be numeric or a
+#' factor but needs to be of the same class as the variable named in
+#' \code{smp_domains}.
 #' @param pop_weights a character string containing the name of a variable that
 #' indicates population weights in the populatation data. If a character string
 #' is provided weighted indicators are estimated using population weights.
@@ -375,8 +378,8 @@ ebp_reportcoef_table <- function(model,
 #' otherwise it the function simply ranks Head_Count output within `ebp` object
 #' @param number_to_list an integer, the first `number_to_list` number of
 #' target areas to produce from `byrank_indicator` ordering.
-#' @param head a logical, if `TRUE` the top `number_to_list` results will be returned
-#' and if `FALSE` the bottom `number_to_list` will be returned
+#' @param head a logical, if `TRUE` the top `number_to_list` results will be
+#' returned and if `FALSE` the bottom `number_to_list` will be returned
 #'
 #' @examples
 #' data("eusilcA_pop")
@@ -394,7 +397,7 @@ ebp_reportcoef_table <- function(model,
 #' # full data of highest population below threshold by rank (descending order)
 #' ebp_report_byrank(model = ebp_model,
 #'                   pop_data = eusilcA_pop,
-#'                   pop_domnames = "district",
+#'                   pop_domains = "district",
 #'                   pop_weights = "hhsize")
 #'
 #' # full data of highest rate below threshold by rank (descending order)
@@ -485,78 +488,84 @@ ebp_report_byrank <- function(model,
 #'
 #' @param model an object returned by the ebp function of type "emdi ebp",
 #' representing point and MSE estimates
-#' @param direct an object of type "direct","emdi", representing point
-#' and MSE estimates.
-#' @param smp_data the survey/training data
-#' @param welfare the welfare aggregate variable or outcome variable of interest
-#' @param domainvar the target area variable
+#' @param calibvar the calibration variable to be used in method 1
 #' @param boot_type the bootstrap type "calibrated" or "naive" to be used in method 1
 #' @param designvar the survey design variable to be used in estimating the design
 #' effect for method 3.
-#' @param smp_weights the weight variable
-#' @param threshold the poverty line or threshold specified
+#' @param threshold  a number defining a threshold. The  argument defaults to
+#' \code{NULL}. In this case, the threshold is set to 60\% of the median of the
+#' variable that is selected as dependent variable similary to the
+#' at-risk-of-poverty rate used in the EU (see also
+#' \cite{Social Protection  Committee 2001}). However, any desired threshold can
+#' be chosen.
+#' @param B number of bootstrap iterations for variance estimation. Defaults
+#' to number of bootstrap iteration in ebp obeject (specified in \code{model}).
 #'
 #' @examples
-#' data("eusilcA_pop2")
-#' data("eusilcA_smp2")
+#' data("eusilcA_pop")
+#' data("eusilcA_smp")
 #'
-#'#### set of variables used in model estimation
-#'variables <- c("gender", "eqsize", "cash", "self_empl",
-#'               "unempl_ben", "age_ben", "surv_ben",
-#'               "sick_ben", "dis_ben", "rent", "fam_allow",
-#'               "house_allow", "cap_inv", "tax_adj")
+#' # estimate a unit model
+#' ebp_model <- ebp(fixed = eqIncome ~ gender + eqsize + cash +
+#'                     self_empl + unempl_ben + age_ben + surv_ben + sick_ben +
+#'                     dis_ben + rent + fam_allow + house_allow + cap_inv +
+#'                     tax_adj,
+#'                  pop_data = eusilcA_pop, pop_domains = "district",
+#'                  smp_data = eusilcA_smp, smp_domains = "district",
+#'                  na.rm = TRUE, weights = "weight",
+#'                  pop_weights = "hhsize", MSE = TRUE, weights_type = "nlme",
+#'                  B = 2, L = 2)
 #'
-#'### estimate a unit model
-#'emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-#'                                                                          collapse= "+"))),
-#'                            pop_data = eusilcA_pop2,
-#'                            pop_domains = "district",
-#'                            smp_data = eusilcA_smp2,
-#'                            smp_domains = "district",
-#'                            na.rm = TRUE,
-#'                            weights = "weight",
-#'                            pop_weights = "popweights",
-#'                            MSE = TRUE,
-#'                            threshold = 11000,
-#'                            B = 2,
-#'                            L = 2)
-#'
-#'### full data of highest population below threshold by rank (descending order)
-#'ebp_report_byrank(ebp_object = emdi_model,
-#'                  smp_data = eusilcA_smp2,
-#'                  welfare = "eqIncome",
-#'                  calibvar = "state",
-#'                  domainvar = "district",
-#'                  threshold = 11000,
-#'                  smp_weights = "weight")
-#'
+#' # compute CV table
+#' ebp_compute_cv(model = ebp_model, calibvar = "gender", threshold = 11000)
 #'
 #'@export
-#'
+
 
 ebp_compute_cv <- function(model,
-                           direct,
-                           smp_data,
-                           welfare,
-                           domainvar,
+                           calibvar,
                            boot_type = "calibrate",
                            designvar = NULL,
-                           threshold,
-                           smp_weights){
+                           threshold = NULL,
+                           B = model$call$B){
 
-  # Direct Estimate : Mean and CV (CV!)
-  direct_obj <- direct
 
-  direct_obj$ind$Direct_Head_Count_CV <- sqrt(direct_obj$MSE$Head_Count) /
-    direct_obj$ind$Head_Count
 
-  # computing direct estimate using the Horowitz Thompson (HT) indicator
+  if (is.null(model$call$weights)) {
+    model$framework$smp_data$weights <- rep(1, nrow(model$framework$smp_data))
+    model$call$weights <- "weights"
+  }
+
+  if (is.null(threshold)) {
+    threshold <- 0.6 * median(model$framework$smp_data[[paste(model$fixed[2])]])
+    message(strwrap(prefix = " ", initial = "",
+                    paste0("The threshold for the HCR and the PG is
+                          automatically set to 60% of the median of the
+                          dependent variable and equals ", threshold)))
+  }
+
+  # Direct Estimate with calibration : Mean and CV
+  calibmatrix <- create_calibmatrix(model$framework$smp_data[[calibvar]])
+
+  direct_calib <- povmap::direct(y = as.character(model$fixed[[2]]),
+                                 smp_data = model$framework$smp_data,
+                                 smp_domains = model$framework$smp_domains,
+                                 weights = model$call$weights,
+                                 design = designvar, threshold = threshold,
+                                 var = TRUE, boot_type = boot_type,
+                                 X_calib = calibmatrix, totals = NULL,
+                                 na.rm = TRUE, B = B)
+
+  direct_calib$ind$Direct_Head_Count_CV <-
+    sqrt(direct_calib$MSE$Head_Count) /  direct_calib$ind$Head_Count
+
+
+  # Computing direct estimate using the Horowitz Thompson (HT) indicator
   # - direct CV2
+  poor <- as.integer(model$framework$smp_data[[as.character(model$fixed[[2]])]] < threshold)
 
-  poor <- as.integer(ebp_object$framework$smp_data[[welfare]] < threshold)
-
-  domsize_dt <- as.data.frame(tapply(ebp_object$model$data[[smp_weights]],
-                                     ebp_object$model$data[[domainvar]],
+  domsize_dt <- as.data.frame(tapply(model$framework$smp_data[[model$call$weights]],
+                                     model$framework$smp_data[[model$framework$smp_domains]],
                                      sum,
                                      na.rm = TRUE))
 
@@ -569,20 +578,20 @@ ebp_compute_cv <- function(model,
 
   ### HT estimator CV for direct estimate
   directht_dt <- sae::direct(y = poor,
-                             dom = ebp_object$model$data[[domainvar]],
-                             sweight = ebp_object$model$data[[smp_weights]],
+                             dom = model$framework$smp_data[[model$framework$smp_domains]],
+                             sweight = model$framework$smp_data[[model$call$weights]],
                              domsize = domsize_dt)
 
-  directht_dt$Domain <- direct_obj$ind$Domain
+  directht_dt$Domain <- direct_calib$ind$Domain
+
   ## Compute design effect controlled direct estimates and CVs. (direct CV3)
   #### first estimate naive bootstrap
   #### compute design effect
   #### include psu list into the ebp data object
-  ebp_object$model$data$domainvar <- ebp_object$model$data[[domainvar]]
 
-  ebp_object$model$data$poor <- as.integer(ebp_object$model$data[[welfare]] > log(threshold))
+  model$framework$smp_data$poor <- as.integer(model$framework$smp_data[[as.character(model$fixed[[2]])]] > log(threshold))
 
-  ebp_object$model$data$weights <- smp_data[[smp_weights]]
+  model$framework$smp_data$weights <- model$framework$smp_data[[model$call$weights]]
 
   if(is.null(designvar)){
 
@@ -590,17 +599,17 @@ ebp_compute_cv <- function(model,
                                     weights = ~weights,
                                     strata = NULL,
                                     survey.lonely.psu = "adjust",
-                                    data = ebp_object$model$data)
+                                    data = model$framework$smp_data)
 
   } else {
 
-    ebp_object$model$data$designvar <- ebp_object$model$data[[designvar]]
+    model$framework$smp_data$designvar <- model$framework$smp_data[[designvar]]
 
     ebpobj_svy <- survey::svydesign(ids = ~1,
                                     weights = ~weights,
                                     strata = ~designvar,
                                     survey.lonely.psu = "adjust",
-                                    data = ebp_object$model$data)
+                                    data = model$framework$smp_data)
 
   }
 
@@ -609,13 +618,13 @@ ebp_compute_cv <- function(model,
   deff_adjust <- attr(deff_adjust, "deff")[1,1]
 
   ### multiple design effect with naive calibration
-  naivevar_dt <- direct(y = welfare,
-                        smp_data = ebp_object$framework$smp_data,
-                        smp_domains = domainvar,
+  naivevar_dt <- direct(y = as.character(model$fixed[[2]]),
+                        smp_data = model$framework$smp_data,
+                        smp_domains = model$framework$smp_domains,
                         design = designvar,
-                        weights = smp_weights,
+                        weights = model$call$weights,
                         threshold = threshold,
-                        var = TRUE)
+                        var = TRUE, B = B)
 
   naivevar_dt$ind$deff_CV <-
     sqrt(deff_adjust) * (sqrt(naivevar_dt$MSE$Head_Count) / naivevar_dt$ind$Head_Count)
@@ -623,7 +632,7 @@ ebp_compute_cv <- function(model,
   ## ************************ SAE Model Estimates and CV Estimation ****************************
 
   ## compute standard CV using the EMDI package estimator function
-  emdi_dt <- emdi::estimators(object = ebp_object,
+  emdi_dt <- emdi::estimators(object = model,
                               indicator = "Head_Count",
                               MSE = FALSE,
                               CV = TRUE)
@@ -634,7 +643,7 @@ ebp_compute_cv <- function(model,
                                                  "Head_Count_CV")] <-
     c("EBP_Head_Count", "EBP_Head_Count_CV")
 
-  direct_dt <- direct_obj$ind[, c("Domain", "Head_Count", "Direct_Head_Count_CV")]
+  direct_dt <- direct_calib$ind[, c("Domain", "Head_Count", "Direct_Head_Count_CV")]
 
   colnames(direct_dt)[colnames(direct_dt) %in% c("Head_Count",
                                                  "Direct_Head_Count_CV")] <-
@@ -679,10 +688,9 @@ ebp_compute_cv <- function(model,
 
 #' Output Model fit and normality assumptions
 #'
-#'
 #' The function uses the results of the \code{ebp} function to produce output a
-#' table showing marginal R-square, conditional R-squared as well as the skewness
-#' and kurtosis of the random and idiosyncratic error terms
+#' table showing marginal R-square, conditional R-squared as well as the
+#' skewness and kurtosis of the random and idiosyncratic error terms
 #'
 #' @param model an object returned by the ebp function of type "emdi ebp"
 #'
@@ -718,7 +726,7 @@ ebp_normalityfit <- function(model){
     r_conditional <- rsq[2]
   }
 
-  ## include the skewness and kurtosis as well
+  # include the skewness and kurtosis
   skewness_res <- moments::skewness(residuals(model$model,
                                               level = 0,
                                               type = "pearson"))

@@ -1,5 +1,3 @@
-#### -------------------------- prepost-estimation  internals -------------------------------- ####
-
 compute_gini <- function(welfare) {
 
 

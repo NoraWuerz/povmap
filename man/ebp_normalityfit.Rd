@@ -21,6 +21,6 @@ ebp_model <- ebp(
 }
 \description{
 The function uses the results of the \code{ebp} function to produce output a
-table showing marginal R-square, conditional R-squared as well as the skewness
-and kurtosis of the random and idiosyncratic error terms
+table showing marginal R-square, conditional R-squared as well as the
+skewness and kurtosis of the random and idiosyncratic error terms
 }

@@ -19,7 +19,10 @@ ebp_report_byrank(
 
 \item{pop_data}{the population/census/training data}
 
-\item{pop_domains}{the target area variable within `pop_data`}
+\item{pop_domains}{a character string containing the name of a variable that
+indicates domains in the population data. The variable can be numeric or a
+factor but needs to be of the same class as the variable named in
+\code{smp_domains}.}
 
 \item{pop_weights}{a character string containing the name of a variable that
 indicates population weights in the populatation data. If a character string
@@ -36,8 +39,8 @@ otherwise it the function simply ranks Head_Count output within `ebp` object}
 \item{number_to_list}{an integer, the first `number_to_list` number of
 target areas to produce from `byrank_indicator` ordering.}
 
-\item{head}{a logical, if `TRUE` the top `number_to_list` results will be returned
-and if `FALSE` the bottom `number_to_list` will be returned}
+\item{head}{a logical, if `TRUE` the top `number_to_list` results will be
+returned and if `FALSE` the bottom `number_to_list` will be returned}
 }
 \description{
 This function combines the ebp object with the census data to produce report

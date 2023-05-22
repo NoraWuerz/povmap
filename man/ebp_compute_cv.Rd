@@ -6,37 +6,33 @@
 \usage{
 ebp_compute_cv(
   model,
-  direct,
-  smp_data,
-  welfare,
-  domainvar,
+  calibvar,
   boot_type = "calibrate",
   designvar = NULL,
-  threshold,
-  smp_weights
+  threshold = NULL,
+  B = model$call$B
 )
 }
 \arguments{
 \item{model}{an object returned by the ebp function of type "emdi ebp",
 representing point and MSE estimates}
 
-\item{direct}{an object of type "direct","emdi", representing point
-and MSE estimates.}
-
-\item{smp_data}{the survey/training data}
-
-\item{welfare}{the welfare aggregate variable or outcome variable of interest}
-
-\item{domainvar}{the target area variable}
+\item{calibvar}{the calibration variable to be used in method 1}
 
 \item{boot_type}{the bootstrap type "calibrated" or "naive" to be used in method 1}
 
 \item{designvar}{the survey design variable to be used in estimating the design
 effect for method 3.}
 
-\item{threshold}{the poverty line or threshold specified}
+\item{threshold}{a number defining a threshold. The  argument defaults to
+\code{NULL}. In this case, the threshold is set to 60\% of the median of the
+variable that is selected as dependent variable similary to the
+at-risk-of-poverty rate used in the EU (see also
+\cite{Social Protection  Committee 2001}). However, any desired threshold can
+be chosen.}
 
-\item{smp_weights}{the weight variable}
+\item{B}{number of bootstrap iterations for variance estimation. Defaults
+to number of bootstrap iteration in ebp obeject (specified in \code{model}).}
 }
 \description{
 Function \code{ebp_compute_cv} estimates CVs for the headcount of the unit model
@@ -58,38 +54,21 @@ Method 3 finally uses the design effect adjusted naive calibrated MSE. The desig
 effect is estimated using the \code{survey::svydesign} function.
 }
 \examples{
-data("eusilcA_pop2")
-data("eusilcA_smp2")
+data("eusilcA_pop")
+data("eusilcA_smp")
 
-#### set of variables used in model estimation
-variables <- c("gender", "eqsize", "cash", "self_empl",
-              "unempl_ben", "age_ben", "surv_ben",
-              "sick_ben", "dis_ben", "rent", "fam_allow",
-              "house_allow", "cap_inv", "tax_adj")
+# estimate a unit model
+ebp_model <- ebp(fixed = eqIncome ~ gender + eqsize + cash +
+                    self_empl + unempl_ben + age_ben + surv_ben + sick_ben +
+                    dis_ben + rent + fam_allow + house_allow + cap_inv +
+                    tax_adj,
+                 pop_data = eusilcA_pop, pop_domains = "district",
+                 smp_data = eusilcA_smp, smp_domains = "district",
+                 na.rm = TRUE, weights = "weight",
+                 pop_weights = "hhsize", MSE = TRUE, weights_type = "nlme",
+                 B = 2, L = 2)
 
-### estimate a unit model
-emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-                                                                         collapse= "+"))),
-                           pop_data = eusilcA_pop2,
-                           pop_domains = "district",
-                           smp_data = eusilcA_smp2,
-                           smp_domains = "district",
-                           na.rm = TRUE,
-                           weights = "weight",
-                           pop_weights = "popweights",
-                           MSE = TRUE,
-                           threshold = 11000,
-                           B = 2,
-                           L = 2)
-
-### full data of highest population below threshold by rank (descending order)
-ebp_report_byrank(ebp_object = emdi_model,
-                 smp_data = eusilcA_smp2,
-                 welfare = "eqIncome",
-                 calibvar = "state",
-                 domainvar = "district",
-                 threshold = 11000,
-                 smp_weights = "weight")
-
+# compute CV table
+ebp_compute_cv(model = ebp_model, calibvar = "gender", threshold = 11000)
 
 }

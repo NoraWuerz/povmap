@@ -61,7 +61,7 @@ data("eusilcA_pop")
 data("eusilcA_smp")
 
 # estimate a unit model
-ebp_model <- ebp(fixed = fixed = eqIncome ~ gender + eqsize + cash +
+ebp_model <- ebp(fixed = eqIncome ~ gender + eqsize + cash +
                     self_empl + unempl_ben + age_ben + surv_ben + sick_ben +
                     dis_ben + rent + fam_allow + house_allow + cap_inv +
                     tax_adj,
