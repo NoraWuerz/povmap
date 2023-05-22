@@ -70,10 +70,11 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
   if (is.null(transformation) || !(transformation == "box.cox" ||
     transformation == "log" || transformation == "dual" ||
     transformation == "log.shift" || transformation == "no" ||
-    transformation == "ordernorm")) {
+    transformation == "ordernorm" || transformation == "arcsin")) {
     stop(strwrap(prefix = " ", initial = "",
-                 "The five options for transformation are ''no'', ''log'',
-                 ''box.cox'', ''dual'', ''log.shift'', ''ordernorm''."))
+                 "The seven options for transformation are ''no'', ''log'',
+                 ''box.cox'', ''dual'', ''log.shift'', ''ordernorm'',
+                 ''arcsin''."))
   }
   if (any(interval != "default") & (!is.vector(interval, mode = "numeric") ||
     length(interval) != 2 || !(interval[1] < interval[2]))) {
@@ -343,8 +344,8 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
       }
     }
   }
-  if (benchmark_type != "raking") {
-    if (benchmark_type != "ratio") {
+  if (benchmark_type != "ratio") {
+    if (benchmark_type != "raking") {
       stop(strwrap(prefix = " ", initial = "",
                    "The benchmark version of ebp is only available with
                    'raking' and 'ratio'."))
@@ -362,7 +363,8 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
 # Functions called in notation
 fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
                       smp_domains, aggregate_to, threshold, weights,
-                      pop_weights, benchmark_level) {
+                      pop_weights, benchmark_level, weights_type,
+                      rescale_weights) {
   if (!all(mod_vars %in% colnames(pop_data))) {
     stop(strwrap(prefix = " ", initial = "",
                  paste0("Variable ",
@@ -475,6 +477,12 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
     }
   }
 
+  if (!isTRUE(rescale_weights) & weights_type != "Guadarrama") {
+    stop(strwrap(prefix = " ", initial = "",
+                 "The weights are used within the lme function from nlme
+                 where a rescaling is performed by default. The option
+                 rescale_weights = FALSE is in this case not possible."))
+  }
 
   if (inherits(threshold, "function") &&
     (!is.numeric(threshold(smp_data[[paste(fixed[2])]])) ||
