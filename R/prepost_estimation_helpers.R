@@ -582,6 +582,8 @@ ebp_compute_cv <- function(model,
                              sweight = model$framework$smp_data[[model$call$weights]],
                              domsize = domsize_dt)
 
+
+
   directht_dt$Domain <- direct_calib$ind$Domain
 
   ## Compute design effect controlled direct estimates and CVs. (direct CV3)
