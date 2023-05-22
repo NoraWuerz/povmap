@@ -7,13 +7,13 @@
 ebp_reportdescriptives(
   model,
   direct,
-  smp_data,
-  smp_weights = NULL,
-  pop_weights = NULL,
-  CV_level,
   pop_data,
+  pop_domains,
+  smp_data,
   threshold = NULL,
-  pop_domains
+  weights = NULL,
+  pop_weights = NULL,
+  CV_level
 )
 }
 \arguments{
@@ -23,19 +23,11 @@ representing point and MSE estimates}
 \item{direct}{an object of type "direct","emdi", representing point
 and MSE estimates.}
 
-\item{smp_data}{sample data}
-
-\item{smp_weights}{the sample weight variable in the household dataset
-(i.e. the training data), include column of 1s (DO NOT LEAVE UNSPECIFIED)}
-
-\item{pop_weights}{the population weight variable in the census (or synthetic)
-census dataset (i.e. the test data), include column of 1s (NO NOT LEAVE
-UNSPECIFIED)}
-
-\item{CV_level}{the variable level at which Coefficient of Variation should
-be computed}
-
 \item{pop_data}{the population/census/training data}
+
+\item{pop_domains}{the target area variable within `pop_data`}
+
+\item{smp_data}{sample data}
 
 \item{threshold}{a number defining a threshold. The  argument defaults to
 \code{NULL}. In this case, the threshold is set to 60\% of the median of the
@@ -44,7 +36,18 @@ at-risk-of-poverty rate used in the EU (see also
 \cite{Social Protection  Committee 2001}). However, any desired threshold can
 be chosen.}
 
-\item{pop_domains}{the target area variable within `pop_data`}
+\item{weights}{a character string containing the name of a variable that
+indicates weights in the sample data. If a character string is provided a
+weighted version of the ebp will be used. The variable has to be numeric.
+Defaults to NULL.}
+
+\item{pop_weights}{a character string containing the name of a variable that
+indicates population weights in the populatation data. If a character string
+is provided weighted indicators are estimated using population weights.
+The variable has to be numeric. Defaults to NULL.}
+
+\item{CV_level}{the variable level at which Coefficient of Variation should
+be computed}
 }
 \description{
 This function estimates the coefficient of variation at level specified,
@@ -54,41 +57,28 @@ the threshold on which SAE is applied and the outcome indicator of interest
 the census and survey
 }
 \examples{
-data("eusilcA_pop2")
-data("eusilcA_smp2")
-#### set of variables used in model estimation
-variables <- c("gender", "eqsize", "cash", "self_empl",
-              "unempl_ben", "age_ben", "surv_ben",
-              "sick_ben", "dis_ben", "rent", "fam_allow",
-              "house_allow", "cap_inv", "tax_adj")
+data("eusilcA_pop")
+data("eusilcA_smp")
 
-### estimate a unit model
-emdi_model <- ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-                                                                         collapse= "+"))),
-                           pop_data = eusilcA_pop2,
-                           pop_domains = "district",
-                           smp_data = eusilcA_smp2,
-                           smp_domains = "district",
-                           na.rm = TRUE,
-                           weights = "weight",
-                           pop_weights = "popweights",
-                           MSE = TRUE,
-                           threshold = 11000,
-                           B = 2,
-                           L = 2)
+# estimate a unit model
+ebp_model <- ebp(fixed = fixed = eqIncome ~ gender + eqsize + cash +
+                    self_empl + unempl_ben + age_ben + surv_ben + sick_ben +
+                    dis_ben + rent + fam_allow + house_allow + cap_inv +
+                    tax_adj,
+                 pop_data = eusilcA_pop, pop_domains = "district",
+                 smp_data = eusilcA_smp, smp_domains = "district",
+                 na.rm = TRUE, weights = "weight",
+                 pop_weights = "hhsize", MSE = TRUE, weights_type = "nlme",
+                 B = 2, L = 2)
 
-### model estimation
-ebp_reportdescriptives(model = emdi_model,
-                      smp_weights = "weight",
-                      pop_weights = "popweights",
-                      CV_level = "state",
-                      welfare = "eqIncome",
-                      smp_data = eusilcA_smp2,
-                      pop_data = eusilcA_pop2,
-                      threshold = 11000,
-                      pop_domains = "district",
-                      smp_domains = "district")
+# estimate direct
+direct_est <- direct(y = "eqIncome", smp_data = eusilcA_smp,
+                     smp_domains = "district", weights = "weight",
+                     var = TRUE, B = 2)
 
-
-
+# model estimation
+ebp_reportdescriptives(model = ebp_model, direct = direct_est,
+                       smp_data = eusilcA_smp, weights = "weight",
+                       pop_weights = "hhsize", CV_level = "state",
+                       pop_data = eusilcA_pop, pop_domains = "district")
 }

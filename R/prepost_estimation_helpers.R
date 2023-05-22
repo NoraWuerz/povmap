@@ -10,76 +10,67 @@
 #' representing point and MSE estimates
 #' @param direct an object of type "direct","emdi", representing point
 #' and MSE estimates.
-#' @param smp_weights the sample weight variable in the household dataset
-#' (i.e. the training data), include column of 1s (DO NOT LEAVE UNSPECIFIED)
-#' @param pop_weights the population weight variable in the census (or synthetic)
-#' census dataset (i.e. the test data), include column of 1s (NO NOT LEAVE
-#' UNSPECIFIED)
-#' @param CV_level the variable level at which Coefficient of Variation should
-#' be computed
-#' @param smp_data sample data
 #' @param pop_data the population/census/training data
 #' @param pop_domains the target area variable within `pop_data`
+#' @param smp_data sample data
 #' @param threshold  a number defining a threshold. The  argument defaults to
 #' \code{NULL}. In this case, the threshold is set to 60\% of the median of the
 #' variable that is selected as dependent variable similary to the
 #' at-risk-of-poverty rate used in the EU (see also
 #' \cite{Social Protection  Committee 2001}). However, any desired threshold can
 #' be chosen.
+#' @param weights a character string containing the name of a variable that
+#' indicates weights in the sample data. If a character string is provided a
+#' weighted version of the ebp will be used. The variable has to be numeric.
+#' Defaults to NULL.
+#' @param pop_weights a character string containing the name of a variable that
+#' indicates population weights in the populatation data. If a character string
+#' is provided weighted indicators are estimated using population weights.
+#' The variable has to be numeric. Defaults to NULL.
+#' @param CV_level the variable level at which Coefficient of Variation should
+#' be computed
 #'
 #' @examples
-#' data("eusilcA_pop2")
-#' data("eusilcA_smp2")
-#' #### set of variables used in model estimation
-#'variables <- c("gender", "eqsize", "cash", "self_empl",
-#'               "unempl_ben", "age_ben", "surv_ben",
-#'               "sick_ben", "dis_ben", "rent", "fam_allow",
-#'               "house_allow", "cap_inv", "tax_adj")
+#' data("eusilcA_pop")
+#' data("eusilcA_smp")
 #'
-#'### estimate a unit model
-#'emdi_model <- ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-#'                                                                          collapse= "+"))),
-#'                            pop_data = eusilcA_pop2,
-#'                            pop_domains = "district",
-#'                            smp_data = eusilcA_smp2,
-#'                            smp_domains = "district",
-#'                            na.rm = TRUE,
-#'                            weights = "weight",
-#'                            pop_weights = "popweights",
-#'                            MSE = TRUE,
-#'                            threshold = 11000,
-#'                            B = 2,
-#'                            L = 2)
+#' # estimate a unit model
+#' ebp_model <- ebp(fixed = fixed = eqIncome ~ gender + eqsize + cash +
+#'                     self_empl + unempl_ben + age_ben + surv_ben + sick_ben +
+#'                     dis_ben + rent + fam_allow + house_allow + cap_inv +
+#'                     tax_adj,
+#'                  pop_data = eusilcA_pop, pop_domains = "district",
+#'                  smp_data = eusilcA_smp, smp_domains = "district",
+#'                  na.rm = TRUE, weights = "weight",
+#'                  pop_weights = "hhsize", MSE = TRUE, weights_type = "nlme",
+#'                  B = 2, L = 2)
 #'
-#'### model estimation
-#'ebp_reportdescriptives(model = emdi_model,
-#'                       smp_weights = "weight",
-#'                       pop_weights = "popweights",
-#'                       CV_level = "state",
-#'                       welfare = "eqIncome",
-#'                       smp_data = eusilcA_smp2,
-#'                       pop_data = eusilcA_pop2,
-#'                       threshold = 11000,
-#'                       pop_domains = "district",
-#'                       smp_domains = "district")
+#' # estimate direct
+#' direct_est <- direct(y = "eqIncome", smp_data = eusilcA_smp,
+#'                      smp_domains = "district", weights = "weight",
+#'                      var = TRUE, B = 2)
 #'
-#'
-#'
+#' # model estimation
+#' ebp_reportdescriptives(model = ebp_model, direct = direct_est,
+#'                        smp_data = eusilcA_smp, weights = "weight",
+#'                        pop_weights = "hhsize", CV_level = "state",
+#'                        pop_data = eusilcA_pop, pop_domains = "district")
 #' @export
 
 
 ebp_reportdescriptives <- function(model,
                                    direct,
-                                   smp_data,
-                                   smp_weights = NULL,
-                                   pop_weights = NULL,
-                                   CV_level,
                                    pop_data,
+                                   pop_domains,
+                                   smp_data,
                                    threshold = NULL,
-                                   pop_domains){
+                                   weights = NULL,
+                                   pop_weights = NULL,
+                                   CV_level
+                                   ){
 
   if (is.null(threshold)) {
-    threshold <- 0.6 * median(smp_data[[paste(model$fixed[2])]])
+    threshold <- 0.6 * median(model$framework$smp_data[[paste(model$fixed[2])]])
     message(strwrap(prefix = " ", initial = "",
                     paste0("The threshold for the HCR and the PG is
                           automatically set to 60% of the median of the
@@ -88,11 +79,11 @@ ebp_reportdescriptives <- function(model,
 
   hh_varlist <- colnames(model$framework$smp_data)
   pop_varlist <- hh_varlist[!(hh_varlist %in% c(paste(model$fixed[2]),
-                                                smp_weights))]
+                                                weights))]
 
   # subset the survey and census data
   smp_df <- smp_data[complete.cases(smp_data[,hh_varlist]),
-                     c(hh_varlist, CV_level, smp_weights)]
+                     c(hh_varlist, CV_level, weights)]
   pop_df <- pop_data[complete.cases(pop_data[,pop_varlist]),
                      c(pop_varlist, CV_level, pop_weights)]
 
@@ -104,66 +95,50 @@ ebp_reportdescriptives <- function(model,
               by = "Domain")
 
   add_df <-
-    data.frame(Domain = names(tapply(smp_df[[smp_weights]],
+    data.frame(Domain = names(tapply(smp_df[[weights]],
                                      smp_df[[model$framework$smp_domains]],
-                                     sum,
-                                     na.rm = TRUE)),
-               smp_weights = tapply(smp_df[[smp_weights]],
+                                     sum, na.rm = TRUE)),
+               weights = tapply(smp_df[[weights]],
                                     smp_df[[model$framework$smp_domains]],
-                                    sum,
-                                    na.rm = TRUE))
+                                    sum, na.rm = TRUE))
 
   df <- merge(x = df, y = add_df, by = "Domain")
 
   add_df <-
     data.frame(Domain = names(tapply(pop_df[[pop_weights]],
                                      pop_df[[pop_domains]],
-                                     sum,
-                                     na.rm = TRUE)),
+                                     sum, na.rm = TRUE)),
                pop_weights = tapply(pop_df[[pop_weights]],
                                     pop_df[[pop_domains]],
-                                    sum,
-                                    na.rm = TRUE))
+                                    sum, na.rm = TRUE))
 
   df <- merge(x = df, y = add_df, by = "Domain")
 
-  ### add the CV_level variable to df as well
+  # add the CV_level variable to df as well
   pop_df$Domain <- pop_df[[pop_domains]]
-
   add_df <- unique(pop_df[, c("Domain", CV_level)])
 
-  df <- merge(x = df,
-              y = add_df[, c("Domain", CV_level)],
-              by = "Domain")
-
+  df <- merge(x = df, y = add_df[, c("Domain", CV_level)], by = "Domain")
   df$CV <- df$MSE_Head_Count / df$Head_Count
 
-  ### compute the cvs for census and survey at CV_level level
+  # compute the cvs for census and survey at CV_level level
   naivevar_dt <- direct
-
-  naivevar_dt$ind$Direct_Head_Count_CV <- sqrt(naivevar_dt$MSE$Head_Count) / naivevar_dt$ind$Head_Count
-
+  naivevar_dt$ind$Direct_Head_Count_CV <-
+    sqrt(naivevar_dt$MSE$Head_Count) / naivevar_dt$ind$Head_Count
 
   add_df <- data.frame(unique(df[[CV_level]]))
-
   colnames(add_df) <- CV_level
 
-  add_df$sum_smp_weights <- tapply(X = df$smp_weights,
-                                   INDEX = df[[CV_level]],
-                                   FUN = sum,
-                                   na.rm = TRUE)
-  add_df$sum_pop_weights <- tapply(X = df$pop_weights,
-                                   INDEX = df[[CV_level]],
-                                   FUN = sum,
-                                   na.rm = TRUE)
+  add_df$sum_weights <- tapply(X = df$weights, INDEX = df[[CV_level]],
+                                   FUN = sum, na.rm = TRUE)
+  add_df$sum_pop_weights <- tapply(X = df$pop_weights, INDEX = df[[CV_level]],
+                                   FUN = sum, na.rm = TRUE)
   df <- merge(x = df, y = add_df, by = CV_level)
 
-  povrate <- weighted.mean(x = df$Head_Count,
-                           w = df$smp_weights,
-                           na.rm = TRUE)
+  povrate <- weighted.mean(x = df$Head_Count, w = df$weights, na.rm = TRUE)
 
 
-  df$smp_weights <- df$smp_weights / df$sum_smp_weights
+  df$weights <- df$weights / df$sum_weights
   df$pop_weights <- df$pop_weights / df$sum_pop_weights
 
   df <- merge(x = df,
@@ -174,43 +149,44 @@ ebp_reportdescriptives <- function(model,
   cv_df <-
     data.frame(indicator = paste0("CV for Area: ", unique(df[[CV_level]])),
                ebp_cv = tapply(X = df$CV * df$pop_weights,
-                               INDEX = df[[CV_level]],
-                               FUN = sum,
-                               na.rm = TRUE),
-               direct_cv = tapply(X = df$Direct_Head_Count_CV * df$smp_weights,
-                                  INDEX = df[[CV_level]],
-                                  FUN = sum,
+                               INDEX = df[[CV_level]], FUN = sum, na.rm = TRUE),
+               direct_cv = tapply(X = df$Direct_Head_Count_CV * df$weights,
+                                  INDEX = df[[CV_level]], FUN = sum,
                                   na.rm = TRUE))
 
-  #### ----------------- add other elements of the table ----------------- ####
-  ##### compute number of households in census and survey
+  # compute number of households in census and survey
   basic_df <-
     data.frame(indicator = c("Number of Units","Number of Regions",
                              "Number of Target Areas"),
                census = c(model$framework$N_pop,
-                          length(unique(pop_df[[CV_level]][is.na(pop_df[[CV_level]]) == FALSE])),
-                          length(unique(pop_df[[pop_domains]][is.na(pop_df[[model$framework$smp_domains]]) == FALSE]))),
+                          length(unique(pop_df[[CV_level]][
+                            is.na(pop_df[[CV_level]]) == FALSE
+                            ])),
+                          length(unique(pop_df[[pop_domains]][
+                            is.na(pop_df[[model$framework$smp_domains]]) == FALSE
+                            ]))),
                survey = c(model$framework$N_smp,
-                          length(unique(smp_df[[CV_level]][is.na(smp_df[[CV_level]]) == FALSE])),
-                          length(unique(smp_df[[model$framework$smp_domains]][is.na(smp_df[[model$framework$smp_domains]]) == FALSE]))))
-  #round(sum(pop_df[[pop_weights]], na.rm = TRUE)),
+                          length(unique(smp_df[[CV_level]][
+                            is.na(smp_df[[CV_level]]) == FALSE
+                            ])),
+                          length(unique(smp_df[[model$framework$smp_domains]][
+                            is.na(smp_df[[model$framework$smp_domains]]) == FALSE
+                            ]))))
 
   basic_df$census <- as.integer(basic_df$census)
   basic_df$survey <- as.integer(basic_df$survey)
 
-  ##### compute poverty numbers
+  # compute poverty numbers
   smp_data$poor <- ifelse(model$framework$smp_data[[paste(model$fixed[2])]] <
-                            threshold, 1, 0)
+                          threshold, 1, 0)
 
-  smp_data[[smp_weights]] <-
-    smp_data[[smp_weights]] / sum(smp_data[[smp_weights]],
-                                  na.rm = TRUE)
+  smp_data[[weights]] <- smp_data[[weights]] /
+    sum(smp_data[[weights]], na.rm = TRUE)
 
   pov_df <-
     data.frame(indicator = c("National Poverty Rate", "National Poverty Line"),
                model = c(povrate, threshold),
-               survey = c(sum(smp_data$poor * smp_data[[smp_weights]]),
-                          threshold))
+               survey = c(sum(smp_data$poor * smp_data[[weights]]), threshold))
 
   row.names(cv_df) <- NULL
 
