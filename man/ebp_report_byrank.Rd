@@ -21,7 +21,13 @@ ebp_report_byrank(
 
 \item{pop_domains}{the target area variable within `pop_data`}
 
-\item{pop_weights}{the population weight variable in the census}
+\item{pop_weights}{a character string containing the name of a variable that
+indicates population weights in the populatation data. If a character string
+is provided weighted indicators are estimated using population weights.
+The variable has to be numeric. Defaults to \code{NULL}. Please note that
+\code{pop_weights} should only be used if in the \code{pop_data} not
+individual data is provided and thus the number of persons per unit (e.g.
+household, grid) must be indicated.}
 
 \item{byrank_indicator}{if argument is "count", the function ranks the
 product of Head_Count (from object of class `ebp`) and `pop_weights`,
@@ -50,27 +56,26 @@ ebp_model <- ebp(
  pop_data = eusilcA_pop, pop_domains = "district",
  smp_data = eusilcA_smp, smp_domains = "district",
  weights = "weight", weights_type = "nlme", na.rm = TRUE,
- pop_weights = "eqsize"
- )
+ pop_weights = "hhsize")
 
 # full data of highest population below threshold by rank (descending order)
 ebp_report_byrank(model = ebp_model,
-                  pop_data = eusilcA_pop2,
+                  pop_data = eusilcA_pop,
                   pop_domnames = "district",
-                  pop_weights = "popweights")
+                  pop_weights = "hhsize")
 
 # full data of highest rate below threshold by rank (descending order)
 ebp_report_byrank(model = ebp_model,
                   pop_data = eusilcA_pop,
                   pop_domains = "district",
-                  pop_weights = "eqsize",
+                  pop_weights = "hhsize",
                   byrank_indicator = "rate")
 
 # bottom 10 poverty count below threshold by rank (in ascending order)
 ebp_report_byrank(model = ebp_model,
                   pop_data = eusilcA_pop,
                   pop_domains = "district",
-                  pop_weights = "eqsize",
+                  pop_weights = "hhsize",
                   number_to_list = 10,
                   head = FALSE)
 

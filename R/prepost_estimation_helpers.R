@@ -213,7 +213,11 @@ ebp_reportdescriptives <- function(model,
 #' @param pop_weights a character string containing the name of a variable that
 #' indicates population weights in the populatation data. If a character string
 #' is provided weighted indicators are estimated using population weights.
-#' The variable has to be numeric. Defaults to \code{NULL}.
+#' The variable has to be numeric. Defaults to \code{NULL}. Please note that
+#' \code{pop_weights} should only be used if the samples and population data
+#' are at different levels (e.g.: \code{smp_data} at individual level and
+#' \code{pop_data} at household level, then \code{pop_weights} is needed for
+#' the comparison with a variable indicating household size).
 #'
 #' @examples
 #' data("eusilcA_pop")
@@ -227,9 +231,7 @@ ebp_reportdescriptives <- function(model,
 #' ebp_test_means(varlist = variables,
 #'                pop_data = eusilcA_pop,
 #'                smp_data = eusilcA_smp,
-#'                weights = "weight",
-#'                pop_weights = "eqsize"
-#'                )
+#'                weights = "weight")
 #'
 #' @export
 
@@ -302,13 +304,12 @@ ebp_test_means <- function(varlist,
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
-#'ebp_model <- ebp(
+#' ebp_model <- ebp(
 #'  fixed = eqIncome ~ gender + eqsize + cash + self_empl +
 #'    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
 #'    house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
 #'  pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
-#'  na.rm = TRUE
-#'  )
+#'  na.rm = TRUE)
 #'
 #'ebp_reportcoef_table(ebp_model, 4)
 #'
@@ -362,7 +363,13 @@ ebp_reportcoef_table <- function(model,
 #' @param model an object returned by the ebp function of type "emdi ebp".
 #' @param pop_data the population/census/training data
 #' @param pop_domains the target area variable within `pop_data`
-#' @param pop_weights the population weight variable in the census
+#' @param pop_weights a character string containing the name of a variable that
+#' indicates population weights in the populatation data. If a character string
+#' is provided weighted indicators are estimated using population weights.
+#' The variable has to be numeric. Defaults to \code{NULL}. Please note that
+#' \code{pop_weights} should only be used if in the \code{pop_data} not
+#' individual data is provided and thus the number of persons per unit (e.g.
+#' household, grid) must be indicated.
 #' @param byrank_indicator if argument is "count", the function ranks the
 #' product of Head_Count (from object of class `ebp`) and `pop_weights`,
 #' otherwise it the function simply ranks Head_Count output within `ebp` object
@@ -382,27 +389,26 @@ ebp_reportcoef_table <- function(model,
 #'  pop_data = eusilcA_pop, pop_domains = "district",
 #'  smp_data = eusilcA_smp, smp_domains = "district",
 #'  weights = "weight", weights_type = "nlme", na.rm = TRUE,
-#'  pop_weights = "eqsize"
-#'  )
+#'  pop_weights = "hhsize")
 #'
 #' # full data of highest population below threshold by rank (descending order)
 #' ebp_report_byrank(model = ebp_model,
-#'                   pop_data = eusilcA_pop2,
+#'                   pop_data = eusilcA_pop,
 #'                   pop_domnames = "district",
-#'                   pop_weights = "popweights")
+#'                   pop_weights = "hhsize")
 #'
 #' # full data of highest rate below threshold by rank (descending order)
 #' ebp_report_byrank(model = ebp_model,
 #'                   pop_data = eusilcA_pop,
 #'                   pop_domains = "district",
-#'                   pop_weights = "eqsize",
+#'                   pop_weights = "hhsize",
 #'                   byrank_indicator = "rate")
 #'
 #'# bottom 10 poverty count below threshold by rank (in ascending order)
 #' ebp_report_byrank(model = ebp_model,
 #'                   pop_data = eusilcA_pop,
 #'                   pop_domains = "district",
-#'                   pop_weights = "eqsize",
+#'                   pop_weights = "hhsize",
 #'                   number_to_list = 10,
 #'                   head = FALSE)
 #'

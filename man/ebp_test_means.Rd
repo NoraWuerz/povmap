@@ -21,7 +21,11 @@ Defaults to \code{NULL}.}
 \item{pop_weights}{a character string containing the name of a variable that
 indicates population weights in the populatation data. If a character string
 is provided weighted indicators are estimated using population weights.
-The variable has to be numeric. Defaults to \code{NULL}.}
+The variable has to be numeric. Defaults to \code{NULL}. Please note that
+\code{pop_weights} should only be used if the samples and population data
+are at different levels (e.g.: \code{smp_data} at individual level and
+\code{pop_data} at household level, then \code{pop_weights} is needed for
+the comparison with a variable indicating household size).}
 }
 \description{
 This function computes weighted means of the same set of variables within the
@@ -40,8 +44,6 @@ variables <- c("gender", "eqsize", "cash", "self_empl",
 ebp_test_means(varlist = variables,
                pop_data = eusilcA_pop,
                smp_data = eusilcA_smp,
-               weights = "weight",
-               pop_weights = "eqsize"
-               )
+               weights = "weight")
 
 }
