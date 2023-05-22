@@ -167,13 +167,17 @@ mse_estim <- function(framework,
       framework$threshold(y = pop_income_vector)
   }
 
-  if(!is.null(framework$aggregate_to_vec)){
+  if(!is.null(framework$aggregate_to_vec)) {
     N_dom_pop_tmp <- framework$N_dom_pop_agg
     pop_domains_vec_tmp <- framework$aggregate_to_vec
-    pop_weights_vec <- framework$pop_data[[framework$pop_weights]]
   } else {
     N_dom_pop_tmp <- framework$N_dom_pop
     pop_domains_vec_tmp <- framework$pop_domains_vec
+  }
+
+  if(!is.null(framework$pop_weights)) {
+    pop_weights_vec <- framework$pop_data[[framework$pop_weights]]
+  }else{
     pop_weights_vec <- rep(1, nrow(framework$pop_data))
   }
 
@@ -202,7 +206,7 @@ mse_estim <- function(framework,
 
   if (!is.null(benchmark)) {
     if (is.character(benchmark)) {
-      add_bench <- true_indicators[, benchmark]
+      add_bench <- data.frame(true_indicators[, benchmark])
       if (!is.null(dim(add_bench))) {
         colnames(add_bench) <- c(paste0(benchmark,"_bench"))
       } else {
@@ -225,7 +229,7 @@ mse_estim <- function(framework,
         }
       }
     }
-    true_indicators <- cbind(true_indicators, add_bench)
+    true_indicators <- as.matrix(cbind(true_indicators, add_bench))
   }
 
   # The function bootstrap_par returns a sample that can be given into the
@@ -287,7 +291,6 @@ mse_estim <- function(framework,
         benchmark_level = benchmark_level)
     }
   }
-
   return((bootstrap_point_estim - true_indicators)^2)
 } # End mse_estim
 

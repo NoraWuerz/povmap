@@ -27,8 +27,11 @@ ebp(
   aggregate_to = NULL,
   weights_type = "Guadarrama",
   benchmark = NULL,
-  benchmark_type = "raking",
-  benchmark_level = NULL
+  benchmark_type = "ratio",
+  benchmark_level = NULL,
+  nlme_maxiter = 1000,
+  nlme_tolerance = 1e-06,
+  rescale_weights = TRUE
 )
 }
 \arguments{
@@ -168,11 +171,22 @@ Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.}
 
 \item{benchmark_type}{a character indicating the type of benchmarking. Types
 that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
-("\code{ratio}"). Defaults to "\code{raking}"}
+("\code{ratio}"). Defaults to "\code{ratio}"}
 
 \item{benchmark_level}{a character indicating the level at which the
 benchmarking is performed. This name must be represented in the sample and
 population data as variable name.}
+
+\item{nlme_maxiter}{an integer indicating the maximum number of iterations
+the \code{lme} function from package \code{\link{nlme}} will run for
+parameter convergence.}
+
+\item{nlme_tolerance}{an integer indicating the tolerance criterium for the
+the \code{lme} function from package \code{\link{nlme}}.}
+
+\item{rescale_weights}{a logical indicating if the sample weights are scaled.
+If \code{FALSE}, the sample weights do not change. When \code{TRUE}
+(default), the sample weights are rescaled such that the average weight is 1.}
 }
 \value{
 An object of class "ebp", "emdi" that provides estimators for

@@ -128,10 +128,18 @@
 #' Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.
 #' @param benchmark_type a character indicating the type of benchmarking. Types
 #' that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
-#' ("\code{ratio}"). Defaults to "\code{raking}"
+#' ("\code{ratio}"). Defaults to "\code{ratio}"
 #' @param benchmark_level a character indicating the level at which the
 #' benchmarking is performed. This name must be represented in the sample and
 #' population data as variable name.
+#' @param nlme_maxiter an integer indicating the maximum number of iterations
+#' the \code{lme} function from package \code{\link{nlme}} will run for
+#' parameter convergence.
+#' @param nlme_tolerance an integer indicating the tolerance criterium for the
+#' the \code{lme} function from package \code{\link{nlme}}.
+#' @param rescale_weights a logical indicating if the sample weights are scaled.
+#' If \code{FALSE}, the sample weights do not change. When \code{TRUE}
+#' (default), the sample weights are rescaled such that the average weight is 1.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -284,9 +292,13 @@ ebp <- function(fixed,
                 aggregate_to = NULL,
                 weights_type = "Guadarrama",
                 benchmark = NULL,
-                benchmark_type = "raking",
-                benchmark_level = NULL
+                benchmark_type = "ratio",
+                benchmark_level = NULL,
+                nlme_maxiter = 1000,
+                nlme_tolerance = 1e-6,
+                rescale_weights = TRUE
                 ) {
+
   ebp_check1(
     fixed = fixed, pop_data = pop_data, pop_domains = pop_domains,
     smp_data = smp_data, smp_domains = smp_domains, L = L
@@ -331,7 +343,10 @@ ebp <- function(fixed,
     weights = weights,
     pop_weights = pop_weights,
     weights_type = weights_type,
-    benchmark_level = benchmark_level
+    benchmark_level = benchmark_level,
+    nlme_maxiter = nlme_maxiter,
+    nlme_tolerance = nlme_tolerance,
+    rescale_weights = rescale_weights
   )
 
 
