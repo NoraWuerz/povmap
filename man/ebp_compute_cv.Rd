@@ -5,10 +5,10 @@
 \title{Coefficient of Variation (CV) estimations for Unit EBP Model Headcount Estimates}
 \usage{
 ebp_compute_cv(
-  ebp_object,
+  model,
+  direct,
   smp_data,
   welfare,
-  calibvar,
   domainvar,
   boot_type = "calibrate",
   designvar = NULL,
@@ -17,14 +17,15 @@ ebp_compute_cv(
 )
 }
 \arguments{
-\item{ebp_object}{the EBP object produced from by EMDI from unit model estimation
-the object is of class "ebp emdi"}
+\item{model}{an object returned by the ebp function of type "emdi ebp",
+representing point and MSE estimates}
+
+\item{direct}{an object of type "direct","emdi", representing point
+and MSE estimates.}
 
 \item{smp_data}{the survey/training data}
 
 \item{welfare}{the welfare aggregate variable or outcome variable of interest}
-
-\item{calibvar}{the calibration variable to be used in method 1}
 
 \item{domainvar}{the target area variable}
 
