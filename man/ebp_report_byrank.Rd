@@ -5,18 +5,17 @@
 \title{Produce EBP Head Count Population/Rate by Rank}
 \usage{
 ebp_report_byrank(
-  ebp_object,
+  model,
   pop_data,
   pop_domains,
-  pop_weights,
+  pop_weights = NULL,
   byrank_indicator = "count",
   number_to_list = NULL,
   head = TRUE
 )
 }
 \arguments{
-\item{ebp_object}{the EBP object produced from by EMDI from unit model estimation
-the object is of class "ebp emdi"}
+\item{model}{an object returned by the ebp function of type "emdi ebp".}
 
 \item{pop_data}{the population/census/training data}
 
@@ -24,17 +23,15 @@ the object is of class "ebp emdi"}
 
 \item{pop_weights}{the population weight variable in the census}
 
-\item{byrank_indicator}{if argument is "count", the function ranks the product
-of Head_Count (from object of class `ebp`) and `pop_weights`, otherwise it
-the function simply ranks Head_Count output within `ebp` object}
+\item{byrank_indicator}{if argument is "count", the function ranks the
+product of Head_Count (from object of class `ebp`) and `pop_weights`,
+otherwise it the function simply ranks Head_Count output within `ebp` object}
 
 \item{number_to_list}{an integer, the first `number_to_list` number of
 target areas to produce from `byrank_indicator` ordering.}
 
 \item{head}{a logical, if `TRUE` the top `number_to_list` results will be returned
 and if `FALSE` the bottom `number_to_list` will be returned}
-
-\item{pop_domnames}{the population domain names}
 }
 \description{
 This function combines the ebp object with the census data to produce report
@@ -52,28 +49,29 @@ ebp_model <- ebp(
     house_allow + cap_inv + tax_adj,
  pop_data = eusilcA_pop, pop_domains = "district",
  smp_data = eusilcA_smp, smp_domains = "district",
- weights = "weights", na.rm = TRUE, pop_weights = "eqsize"
+ weights = "weight", weights_type = "nlme", na.rm = TRUE,
+ pop_weights = "eqsize"
  )
 
 # full data of highest population below threshold by rank (descending order)
-ebp_report_byrank(ebp_object = emdi_model,
+ebp_report_byrank(model = ebp_model,
                   pop_data = eusilcA_pop2,
                   pop_domnames = "district",
                   pop_weights = "popweights")
 
-### full data of highest rate below threshold by rank (descending order)
-ebp_report_byrank(ebp_object = emdi_model,
-                 pop_data = eusilcA_pop2,
-                 pop_domains = "district",
-                 pop_weights = "popweights",
-                 byrank_indicator = "rate")
+# full data of highest rate below threshold by rank (descending order)
+ebp_report_byrank(model = ebp_model,
+                  pop_data = eusilcA_pop,
+                  pop_domains = "district",
+                  pop_weights = "eqsize",
+                  byrank_indicator = "rate")
 
-### bottom 10 poverty count below threshold by rank (in ascending order)
-ebp_report_byrank(ebp_object = emdi_model,
-                 pop_data = eusilcA_pop2,
-                 pop_domains = "district",
-                 pop_weights = "popweights",
-                 number_to_list = 10,
-                 head = FALSE)
+# bottom 10 poverty count below threshold by rank (in ascending order)
+ebp_report_byrank(model = ebp_model,
+                  pop_data = eusilcA_pop,
+                  pop_domains = "district",
+                  pop_weights = "eqsize",
+                  number_to_list = 10,
+                  head = FALSE)
 
 }

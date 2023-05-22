@@ -77,7 +77,6 @@ ebp_reportdescriptives <- function(model,
                                    pop_data,
                                    threshold = NULL,
                                    pop_domains){
-  #browser()
 
   if (is.null(threshold)) {
     threshold <- 0.6 * median(smp_data[[paste(model$fixed[2])]])
@@ -447,7 +446,6 @@ ebp_report_byrank <- function(model,
     pop_weights <- "pop_weights"
   }
 
-  browser()
   # compute population totals
   pop_data <- pop_data[, c(pop_domains, pop_weights)]
 
@@ -503,11 +501,12 @@ ebp_report_byrank <- function(model,
 #' Method 3 finally uses the design effect adjusted naive calibrated MSE. The design
 #' effect is estimated using the \code{survey::svydesign} function.
 #'
-#' @param ebp_object the EBP object produced from by EMDI from unit model estimation
-#' the object is of class "ebp emdi"
+#' @param model an object returned by the ebp function of type "emdi ebp",
+#' representing point and MSE estimates
+#' @param direct an object of type "direct","emdi", representing point
+#' and MSE estimates.
 #' @param smp_data the survey/training data
 #' @param welfare the welfare aggregate variable or outcome variable of interest
-#' @param calibvar the calibration variable to be used in method 1
 #' @param domainvar the target area variable
 #' @param boot_type the bootstrap type "calibrated" or "naive" to be used in method 1
 #' @param designvar the survey design variable to be used in estimating the design
@@ -553,41 +552,25 @@ ebp_report_byrank <- function(model,
 #'@export
 #'
 
-ebp_compute_cv <- function(ebp_object,
+ebp_compute_cv <- function(model,
+                           direct,
                            smp_data,
                            welfare,
-                           calibvar,
                            domainvar,
                            boot_type = "calibrate",
                            designvar = NULL,
                            threshold,
                            smp_weights){
 
-  ## ******************** Direct Estimate : Mean and CV ************************
+  # Direct Estimate : Mean and CV (CV!)
+  direct_obj <- direct
 
+  direct_obj$ind$Direct_Head_Count_CV <- sqrt(direct_obj$MSE$Head_Count) /
+    direct_obj$ind$Head_Count
 
-  ## computing direct estimate using calibrated bootstrapping (EMDI + LAEKEN) - direct CV1
-  #### first prepare the calibration matrix
+  # computing direct estimate using the Horowitz Thompson (HT) indicator
+  # - direct CV2
 
-  calibmatrix <- create_calibmatrix(smp_data[[calibvar]])
-
-
-  direct_obj <- emdi::direct(y = welfare,
-                             smp_data = ebp_object$framework$smp_data,
-                             smp_domains = domainvar,
-                             weights = smp_weights,
-                             design = designvar,
-                             threshold = threshold,
-                             var = TRUE,
-                             boot_type = boot_type,
-                             X_calib = calibmatrix,
-                             totals = NULL,
-                             na.rm = TRUE)
-
-  direct_obj$ind$Direct_Head_Count_CV <- sqrt(direct_obj$MSE$Head_Count) / direct_obj$ind$Head_Count
-
-  ## computing direct estimate using the Horowitz Thompson (HT) indicator - direct CV2
-  ### first compute poverty rates
   poor <- as.integer(ebp_object$framework$smp_data[[welfare]] < threshold)
 
   domsize_dt <- as.data.frame(tapply(ebp_object$model$data[[smp_weights]],
@@ -709,258 +692,7 @@ ebp_compute_cv <- function(ebp_object,
 }
 
 
-create_calibmatrix <- function(x){
 
-
-  unique_obs <- unique(x)
-
-  result <-
-  lapply(unique_obs,
-         function(y) {
-
-           z <- as.integer(y == x)
-
-           return(z)
-
-         })
-
-  result <- do.call(cbind, result)
-
-  colnames(result) <- unique_obs
-
-  return(result)
-
-}
-
-
-#' Compare estimated and direct parameters in aggregate area levels
-#'
-#' The function \code{aggregate_saedirect} computes the head count, poverty gap
-#' and gini estimates at higher levels of aggregation than that estimated by
-#' \code{ebp}. This serves to compare at a more representative level the
-#' model estimates as well as direct survey estimates for each of the three
-#' parameters.
-#'
-#' @param model an object returned by the ebp function of type "emdi ebp"
-#' @param smp_data a data.frame; the survey/training dataframe
-#' @param pop_data data.frame; the population/census dataframe
-#' @param pop_domains character; the domain variable within the population/census dataframe
-#' @param smp_domains character; the domain variable within the survey dataframe
-#' @param smp_weights character; the sample weight variable
-#' @param pop_weights character; the population weight variable
-#' @param threshold numeric; the poverty line or threshold specified
-#' @param indicator character; an outcome indicator of interest. Options are "Head_Count",
-#' "Gini" and "Poverty_Gap"
-#' @param in_sample logical, if TRUE only in-sample areas will be used in estimating the
-#' aggregated EBP model estimates. Otherwise, all areas are included in estimating the means
-#'
-#' @examples
-#' data("eusilcA_pop2")
-#' data("eusilcA_smp2")
-#'
-#'#### set of variables used in model estimation
-#'variables <- c("gender", "eqsize", "cash", "self_empl",
-#'               "unempl_ben", "age_ben", "surv_ben",
-#'               "sick_ben", "dis_ben", "rent", "fam_allow",
-#'               "house_allow", "cap_inv", "tax_adj")
-#'
-#'### estimate a unit model
-#'emdi_model <- emdiplus::ebp(fixed = as.formula(paste("eqIncome ~ ", paste(variables,
-#'                                                                          collapse= "+"))),
-#'                            pop_data = eusilcA_pop2,
-#'                            pop_domains = "district",
-#'                            smp_data = eusilcA_smp2,
-#'                            smp_domains = "district",
-#'                            na.rm = TRUE,
-#'                            weights = "weight",
-#'                            pop_weights = "popweights",
-#'                            MSE = TRUE,
-#'                            threshold = 11000,
-#'                            B = 2,
-#'                            L = 2)
-#'
-#'  ### estimate aggregated poverty headcounts (EBP and Direct) for regions
-#' aggregate_saedirect(ebp_object = emdi_model,
-#'                     smp_data = eusilcA_smp2,
-#'                     pop_data = eusilcA_pop2,
-#'                     welfare = "eqIncome",
-#'                     smp_domains = "district",
-#'                     pop_domains = "district",
-#'                     pop_weights = "popweights",
-#'                     pop_regions = "state",
-#'                     smp_weights = "weight",
-#'                     threshold = 11000,
-#'                     indicator = "Head_Count",
-#'                     in_sample = FALSE,
-#'                     smp_regions = "state")
-#'
-#'  ### estimate aggregated gini (EBP and Direct) for regions
-#' aggregate_saedirect(ebp_object = emdi_model,
-#'                     smp_data = eusilcA_smp2,
-#'                     pop_data = eusilcA_pop2,
-#'                     welfare = "eqIncome",
-#'                     smp_domains = "district",
-#'                     pop_domains = "district",
-#'                     pop_weights = "popweights",
-#'                     pop_regions = "state",
-#'                     smp_weights = "weight",
-#'                     threshold = 11000,
-#'                     indicator = "Gini",
-#'                     in_sample = FALSE,
-#'                     smp_regions = "state")
-#'
-#'  ### estimate aggregated Poverty_Gap (EBP and Direct) for regions
-#' aggregate_saedirect(ebp_object = emdi_model,
-#'                     smp_data = eusilcA_smp2,
-#'                     pop_data = eusilcA_pop2,
-#'                     welfare = "eqIncome",
-#'                     smp_domains = "district",
-#'                     pop_domains = "district",
-#'                     pop_weights = "popweights",
-#'                     pop_regions = "state",
-#'                     smp_weights = "weight",
-#'                     threshold = 11000,
-#'                     indicator = "Head_Count",
-#'                     in_sample = FALSE,
-#'                     smp_regions = "state")
-#'
-#'  @export
-
-
-aggregate_saedirect <- function(model,
-                                smp_data,
-                                pop_data,
-                                pop_domains,
-                                pop_weights = NULL,
-                                pop_regions,
-                                smp_regions,
-                                smp_weights = NULL,
-                                threshold = NULL,
-                                indicator,
-                                in_sample = TRUE) {
-
-
-  if (is.null(threshold)) {
-    threshold <- 0.6 * median(smp_data[[paste(model$fixed[2])]])
-    message(strwrap(prefix = " ", initial = "",
-                    paste0("The threshold for the HCR and the PG is
-                          automatically set to 60% of the median of the
-                          dependent variable and equals ", threshold)))
-  }
-
-  if (is.null(weights)) {
-    smp_data$weights <- rep(1, nrow(smp_data))
-    weights <- "weights"
-  }
-
-  if (is.null(pop_weights)) {
-    pop_data$pop_weights <- rep(1, nrow(pop_data))
-    pop_weights <- "pop_weights"
-  }
-
-  browser()
-
-  pop_df <- data.frame(N_pop = tapply(X = pop_data[[pop_weights]],
-                                      INDEX = pop_data[[pop_domains]],
-                                      FUN = sum, na.rm = TRUE))
-  pop_df$Domain <- rownames(pop_df)
-
-  ### add indicator for in and out of sample
-  model$ind$in_sample <- ifelse(model$ind$Domain %in%
-                                  unique(smp_data[,model$framework$smp_domains]),
-                                1, 0)
-
-  model$ind <- merge(x = model$ind, y = pop_df, by = "Domain")
-
-  model$ind <- merge(x = model$ind,
-                     y = unique(pop_data[, c(pop_domains, pop_regions)]),
-                     by.x = "Domain", by.y = pop_domains)
-
-  # regional SAE computation
-  if (in_sample == TRUE){
-
-    sae_df <- data.frame(tapply(X = c(model$ind[model$ind$in_sample == 1,
-                                                indicator],
-                                      model$ind[model$ind$in_sample == 1,
-                                                "N_pop"]),
-                                INDEX = rep(model$ind[model$ind$in_sample == 1,
-                                                      pop_regions], 2),
-                                FUN = wgt.mean, na.rm = TRUE))
-
-  } else {
-
-    sae_df <- data.frame(tapply(X = c(model$ind[[indicator]],
-                                      model$ind[["N_pop"]]),
-                                INDEX = rep(model$ind[[pop_regions]], 2),
-                                FUN = wgt.mean, na.rm = TRUE))
-
-  }
-
-  colnames(sae_df) <- paste0("EBP_", indicator)
-  sae_df[[pop_regions]] <- rownames(sae_df)
-  rownames(sae_df) <- NULL
-
-  # compute direct estimates
-  call_df <- data.frame(argument = c("Head_Count", "Gini", "Poverty_Gap"),
-                        call = c("compute_headcount", "compute_gini",
-                                 "compute_gap"))
-
-  function_call <- call_df[call_df$argument == indicator, "call"]
-
-
-  if (indicator %in% c("Head_Count", "Poverty_Gap")) {
-
-    direct_df <- as.data.frame(tapply(X = c(smp_data[[model$fixed[[2]]]],
-                                            smp_data[[smp_weights]]),
-                                      INDEX = rep(smp_data[[smp_regions]], 2),
-                                      FUN = get(function_call),
-                                      threshold = threshold))
-
-    # indicator_list <- getIndicatorList_fixed()
-    #
-    # tapply(X = smp_data[[model$fixed[[2]]]],
-    #        INDEX = smp_data[[smp_regions]],
-    #        FUN = indicator_list$pgap_wrap,
-    #        weights = smp_data[[smp_weights]],
-    #        threshold = threshold)
-    #
-    # lapply(framework$indicator_list,
-    #        function(f, threshold) {
-    #          matrix(
-    #            nrow = N_dom_pop_tmp,
-    #            data = unlist(mapply(
-    #              y = split(population_vector, pop_domains_vec_tmp),
-    #              pop_weights = split(pop_weights_vec, pop_domains_vec_tmp),
-    #              f,
-    #              threshold = framework$threshold
-    #            )), byrow = TRUE
-    #          )
-    #        },
-    #        threshold = framework$threshold
-    # )
-
-
-  } else {
-
-    direct_df <- as.data.frame(tapply(X = c(smp_data[[model$fixed[[2]]]],
-                                            smp_data[[smp_weights]]),
-                                      INDEX = rep(smp_data[[smp_regions]], 2),
-                                      FUN = get(function_call)))
-
-  }
-
-  direct_df <- cbind(data.frame(rownames(direct_df)), direct_df)
-
-  colnames(direct_df) <- c(smp_regions, paste0("Direct_", indicator))
-
-  row.names(direct_df) <- NULL
-
-  ## combine results
-  results_df <- merge(direct_df, sae_df, by = smp_regions)
-
-  return(results_df)
-
-}
 
 
 #' Output Model fit and normality assumptions
