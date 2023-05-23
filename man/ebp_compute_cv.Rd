@@ -2,11 +2,12 @@
 % Please edit documentation in R/prepost_estimation_helpers.R
 \name{ebp_compute_cv}
 \alias{ebp_compute_cv}
-\title{Coefficient of Variation (CV) estimations for Unit EBP Model Headcount Estimates}
+\title{Coefficient of Variation (CV) estimations for Unit EBP Model Headcount
+Estimates}
 \usage{
 ebp_compute_cv(
   model,
-  calibvar,
+  calibvar = NULL,
   boot_type = "calibrate",
   designvar = NULL,
   threshold = NULL,
@@ -19,10 +20,11 @@ representing point and MSE estimates}
 
 \item{calibvar}{the calibration variable to be used in method 1}
 
-\item{boot_type}{the bootstrap type "calibrated" or "naive" to be used in method 1}
+\item{boot_type}{the bootstrap type "calibrated" or "naive" to be used in
+method 1}
 
-\item{designvar}{the survey design variable to be used in estimating the design
-effect for method 3.}
+\item{designvar}{the survey design variable to be used in estimating the
+design effect for method 3.}
 
 \item{threshold}{a number defining a threshold. The  argument defaults to
 \code{NULL}. In this case, the threshold is set to 60\% of the median of the
@@ -35,23 +37,26 @@ be chosen.}
 to number of bootstrap iteration in ebp obeject (specified in \code{model}).}
 }
 \description{
-Function \code{ebp_compute_cv} estimates CVs for the headcount of the unit model
-EBP functions using three different methods. CV, by definition, is the ratio of
-mean square error of the head count to the  head count estimates. Therefore, the
-CV types are distinguished by the method of estimating the mean square.
+Function \code{ebp_compute_cv} estimates CVs for the headcount of the unit
+model EBP functions using three different methods. CV, by definition, is the
+ratio of mean square error of the head count to the  head count estimates.
+Therefore, the CV types are distinguished by the method of estimating the
+mean square.
 }
 \details{
-Method 1 uses the calibrated/naive bootstrapping of the MSE which allows to calibrate
-each bootstrap sample on auxiliary information using the \code{direct} function.
-Calibrated bootstrap improves on the bias of the naive bootstrap when used in the
-complex survey context (see \cite{Rao and Wu (1988)}) for more details.
+Method 1 uses the calibrated/naive bootstrapping of the MSE which allows to
+calibrate each bootstrap sample on auxiliary information using the
+\code{direct} function.' Calibrated bootstrap improves on the bias of the
+naive bootstrap when used in the complex survey context
+(see \cite{Rao and Wu (1988)}) for more details.
 
-Method 2 employs the Horowitz Thompson variance estimation technique to compute
-MSE i.e. each household is assigned the probability selection within the sample
-under a given sampling scheme. The computation employs \code{sae::direct} function.
+Method 2 employs the Horowitz Thompson variance estimation technique to
+compute MSE i.e. each household is assigned the probability selection within
+the sample under a given sampling scheme. The computation employs
+\code{sae::direct} function.
 
-Method 3 finally uses the design effect adjusted naive calibrated MSE. The design
-effect is estimated using the \code{survey::svydesign} function.
+Method 3 finally uses the design effect adjusted naive calibrated MSE. The
+design effect is estimated using the \code{survey::svydesign} function.
 }
 \examples{
 data("eusilcA_pop")
@@ -69,6 +74,6 @@ ebp_model <- ebp(fixed = eqIncome ~ gender + eqsize + cash +
                  B = 2, L = 2)
 
 # compute CV table
-ebp_compute_cv(model = ebp_model, calibvar = "gender", threshold = 11000)
+ebp_compute_cv(model = ebp_model, calibvar = "gender")
 
 }

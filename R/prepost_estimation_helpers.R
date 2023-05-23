@@ -467,31 +467,36 @@ ebp_report_byrank <- function(model,
   return(result_dt)
 }
 
-#' Coefficient of Variation (CV) estimations for Unit EBP Model Headcount Estimates
+#' Coefficient of Variation (CV) estimations for Unit EBP Model Headcount
+#' Estimates
 #'
-#' Function \code{ebp_compute_cv} estimates CVs for the headcount of the unit model
-#' EBP functions using three different methods. CV, by definition, is the ratio of
-#' mean square error of the head count to the  head count estimates. Therefore, the
-#' CV types are distinguished by the method of estimating the mean square.
+#' Function \code{ebp_compute_cv} estimates CVs for the headcount of the unit
+#' model EBP functions using three different methods. CV, by definition, is the
+#' ratio of mean square error of the head count to the  head count estimates.
+#' Therefore, the CV types are distinguished by the method of estimating the
+#' mean square.
 #'
-#' Method 1 uses the calibrated/naive bootstrapping of the MSE which allows to calibrate
-#' each bootstrap sample on auxiliary information using the \code{direct} function.
-#' Calibrated bootstrap improves on the bias of the naive bootstrap when used in the
-#' complex survey context (see \cite{Rao and Wu (1988)}) for more details.
+#' Method 1 uses the calibrated/naive bootstrapping of the MSE which allows to
+#' calibrate each bootstrap sample on auxiliary information using the
+#' \code{direct} function.' Calibrated bootstrap improves on the bias of the
+#' naive bootstrap when used in the complex survey context
+#' (see \cite{Rao and Wu (1988)}) for more details.
 #'
-#' Method 2 employs the Horowitz Thompson variance estimation technique to compute
-#' MSE i.e. each household is assigned the probability selection within the sample
-#' under a given sampling scheme. The computation employs \code{sae::direct} function.
+#' Method 2 employs the Horowitz Thompson variance estimation technique to
+#' compute MSE i.e. each household is assigned the probability selection within
+#' the sample under a given sampling scheme. The computation employs
+#' \code{sae::direct} function.
 #'
-#' Method 3 finally uses the design effect adjusted naive calibrated MSE. The design
-#' effect is estimated using the \code{survey::svydesign} function.
+#' Method 3 finally uses the design effect adjusted naive calibrated MSE. The
+#' design effect is estimated using the \code{survey::svydesign} function.
 #'
 #' @param model an object returned by the ebp function of type "emdi ebp",
 #' representing point and MSE estimates
 #' @param calibvar the calibration variable to be used in method 1
-#' @param boot_type the bootstrap type "calibrated" or "naive" to be used in method 1
-#' @param designvar the survey design variable to be used in estimating the design
-#' effect for method 3.
+#' @param boot_type the bootstrap type "calibrated" or "naive" to be used in
+#' method 1
+#' @param designvar the survey design variable to be used in estimating the
+#' design effect for method 3.
 #' @param threshold  a number defining a threshold. The  argument defaults to
 #' \code{NULL}. In this case, the threshold is set to 60\% of the median of the
 #' variable that is selected as dependent variable similary to the
@@ -517,13 +522,14 @@ ebp_report_byrank <- function(model,
 #'                  B = 2, L = 2)
 #'
 #' # compute CV table
-#' ebp_compute_cv(model = ebp_model, calibvar = "gender", threshold = 11000)
+#' ebp_compute_cv(model = ebp_model, calibvar = "gender")
 #'
 #'@export
+#'@importFrom survey svydesign svymean
 
 
 ebp_compute_cv <- function(model,
-                           calibvar,
+                           calibvar = NULL,
                            boot_type = "calibrate",
                            designvar = NULL,
                            threshold = NULL,
@@ -545,61 +551,52 @@ ebp_compute_cv <- function(model,
   }
 
   # Direct Estimate with calibration : Mean and CV
-  calibmatrix <- create_calibmatrix(model$framework$smp_data[[calibvar]])
+  if(!is.null(calibvar)) {
+    calibmatrix <- create_calibmatrix(model$framework$smp_data[[calibvar]])
 
-  direct_calib <- povmap::direct(y = as.character(model$fixed[[2]]),
-                                 smp_data = model$framework$smp_data,
-                                 smp_domains = model$framework$smp_domains,
-                                 weights = model$call$weights,
-                                 design = designvar, threshold = threshold,
-                                 var = TRUE, boot_type = boot_type,
-                                 X_calib = calibmatrix, totals = NULL,
-                                 na.rm = TRUE, B = B)
-
-  direct_calib$ind$Direct_Head_Count_CV <-
-    sqrt(direct_calib$MSE$Head_Count) /  direct_calib$ind$Head_Count
+    direct_calib <- povmap::direct(y = as.character(model$fixed[[2]]),
+                                   smp_data = model$framework$smp_data,
+                                   smp_domains = model$framework$smp_domains,
+                                   weights = model$call$weights,
+                                   design = designvar, threshold = threshold,
+                                   var = TRUE, boot_type = boot_type,
+                                   X_calib = calibmatrix, totals = NULL,
+                                   na.rm = TRUE, B = B)
 
 
-  # Computing direct estimate using the Horowitz Thompson (HT) indicator
-  # - direct CV2
-  poor <- as.integer(model$framework$smp_data[[as.character(model$fixed[[2]])]] < threshold)
-
-  domsize_dt <- as.data.frame(tapply(model$framework$smp_data[[model$call$weights]],
-                                     model$framework$smp_data[[model$framework$smp_domains]],
-                                     sum,
-                                     na.rm = TRUE))
-
-  colnames(domsize_dt) <- "popsize"
-  domsize_dt$Domain <- rownames(domsize_dt)
-
-  domsize_dt <- domsize_dt[is.na(domsize_dt$popsize) == FALSE,]
-
-  domsize_dt <- domsize_dt[,c("Domain", "popsize")]
-
-  ### HT estimator CV for direct estimate
-  directht_dt <- sae::direct(y = poor,
-                             dom = model$framework$smp_data[[model$framework$smp_domains]],
-                             sweight = model$framework$smp_data[[model$call$weights]],
-                             domsize = domsize_dt)
+    direct_calib <-
+      data.frame(Domain = direct_calib$ind$Domain,
+                 CB_Head_Count_CV = sqrt(direct_calib$MSE$Head_Count) /
+                   direct_calib$ind$Head_Count)
+  }
 
 
+  # HT estimator CV for direct estimate
+  direct_ht <- povmap::direct(y = as.character(model$fixed[[2]]),
+                             smp_data = model$framework$smp_data,
+                             smp_domains = model$framework$smp_domains,
+                             weights = model$call$weights,
+                             threshold = threshold,
+                             var = TRUE, na.rm = TRUE, HT = T)
 
-  directht_dt$Domain <- direct_calib$ind$Domain
+  direct_ht <-
+    data.frame(Domain = direct_ht$ind$Domain,
+               Direct_Head_Count = direct_ht$ind$Head_Count,
+               HT_Head_Count_CV = sqrt(direct_ht$MSE$Head_Count) /
+                 direct_ht$ind$Head_Count)
 
-  ## Compute design effect controlled direct estimates and CVs. (direct CV3)
-  #### first estimate naive bootstrap
-  #### compute design effect
-  #### include psu list into the ebp data object
-
-  model$framework$smp_data$poor <- as.integer(model$framework$smp_data[[as.character(model$fixed[[2]])]] > log(threshold))
-
-  model$framework$smp_data$weights <- model$framework$smp_data[[model$call$weights]]
+  # Compute design effect controlled direct estimates and CVs. (direct CV3)
+  ## first estimate naive bootstrap, than compute design effect and include psu
+  ## list into the ebp data object
+  model$framework$smp_data$poor <-
+    as.integer(model$framework$smp_data[[as.character(model$fixed[[2]])]] <
+                 threshold)
+  model$framework$smp_data$weights <-
+    model$framework$smp_data[[model$call$weights]]
 
   if(is.null(designvar)){
 
-    ebpobj_svy <- survey::svydesign(ids = ~1,
-                                    weights = ~weights,
-                                    strata = NULL,
+    ebpobj_svy <- survey::svydesign(ids = ~1, weights = ~weights, strata = NULL,
                                     survey.lonely.psu = "adjust",
                                     data = model$framework$smp_data)
 
@@ -607,85 +604,51 @@ ebp_compute_cv <- function(model,
 
     model$framework$smp_data$designvar <- model$framework$smp_data[[designvar]]
 
-    ebpobj_svy <- survey::svydesign(ids = ~1,
-                                    weights = ~weights,
+    ebpobj_svy <- survey::svydesign(ids = ~1, weights = ~weights,
                                     strata = ~designvar,
                                     survey.lonely.psu = "adjust",
                                     data = model$framework$smp_data)
 
   }
 
-
   deff_adjust <- survey::svymean(x = ~poor, ebpobj_svy, na = TRUE, deff = TRUE)
   deff_adjust <- attr(deff_adjust, "deff")[1,1]
 
-  ### multiple design effect with naive calibration
-  naivevar_dt <- direct(y = as.character(model$fixed[[2]]),
-                        smp_data = model$framework$smp_data,
-                        smp_domains = model$framework$smp_domains,
-                        design = designvar,
-                        weights = model$call$weights,
-                        threshold = threshold,
-                        var = TRUE, B = B)
+  direct_naive <- povmap::direct(y = as.character(model$fixed[[2]]),
+                                smp_data = model$framework$smp_data,
+                                smp_domains = model$framework$smp_domains,
+                                design = designvar, weights = model$call$weights,
+                                threshold = threshold, var = TRUE, B = B)
 
-  naivevar_dt$ind$deff_CV <-
-    sqrt(deff_adjust) * (sqrt(naivevar_dt$MSE$Head_Count) / naivevar_dt$ind$Head_Count)
+  direct_naive <-
+    data.frame(Domain = direct_naive$ind$Domain,
+               DesignEffect_CV = sqrt(direct_naive$MSE$Head_Count) /
+                 direct_naive$ind$Head_Count)
 
-  ## ************************ SAE Model Estimates and CV Estimation ****************************
-
-  ## compute standard CV using the EMDI package estimator function
-  emdi_dt <- emdi::estimators(object = model,
-                              indicator = "Head_Count",
-                              MSE = FALSE,
-                              CV = TRUE)
-
+  # get values for table
+  emdi_dt <- povmap::estimators(object = model, indicator = "Head_Count",
+                                MSE = FALSE, CV = TRUE)
   result_dt <- emdi_dt$ind
+  colnames(result_dt) <- c("Domain", "EBP_Head_Count", "EBP_Head_Count_CV")
 
-  colnames(result_dt)[colnames(result_dt) %in% c("Head_Count",
-                                                 "Head_Count_CV")] <-
-    c("EBP_Head_Count", "EBP_Head_Count_CV")
+  if (!is.null(calibvar)) {
+    result_dt <- merge(result_dt, direct_calib, by = "Domain")
+  }
+  result_dt <- merge(result_dt, direct_ht, by = "Domain")
+  result_dt <- merge(result_dt, direct_naive, by = "Domain")
 
-  direct_dt <- direct_calib$ind[, c("Domain", "Head_Count", "Direct_Head_Count_CV")]
-
-  colnames(direct_dt)[colnames(direct_dt) %in% c("Head_Count",
-                                                 "Direct_Head_Count_CV")] <-
-    c("Direct_Head_Count", "CB_Head_Count_CV")
-
-  result_dt <- merge(result_dt,
-                     direct_dt,
-                     on = "Domain")
-
-  direct_dt <- directht_dt[, c("Domain", "CV")]
-
-  direct_dt$CV <- direct_dt$CV / 100
-
-  direct_dt$Domain <- as.factor(direct_dt$Domain)
-
-  colnames(direct_dt)[colnames(direct_dt) %in% "CV"] <- "HT_Head_Count_CV"
-
-  result_dt <- merge(result_dt,
-                     direct_dt,
-                     on = "Domain")
-
-  direct_dt <- naivevar_dt$ind[, c("Domain", "deff_CV")]
-
-  colnames(direct_dt)[colnames(direct_dt) %in% "deff_CV"] <- "DesignEffect_CV"
-
-  result_dt <- merge(result_dt,
-                     direct_dt,
-                     on = "Domain")
-
-  result_dt <- result_dt[,c("Domain", "Direct_Head_Count", "EBP_Head_Count",
+  if (is.null(calibvar)) {
+    result_dt <- result_dt[,c("Domain", "Direct_Head_Count", "EBP_Head_Count",
+                              "HT_Head_Count_CV", "DesignEffect_CV",
+                              "EBP_Head_Count_CV")]
+  } else {
+    result_dt <- result_dt[,c("Domain", "Direct_Head_Count", "EBP_Head_Count",
                             "HT_Head_Count_CV", "CB_Head_Count_CV",
                             "DesignEffect_CV", "EBP_Head_Count_CV")]
-
+  }
 
   return(result_dt)
-
 }
-
-
-
 
 
 #' Output Model fit and normality assumptions

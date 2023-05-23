@@ -64,7 +64,7 @@ ebp_model <- ebp(
 # full data of highest population below threshold by rank (descending order)
 ebp_report_byrank(model = ebp_model,
                   pop_data = eusilcA_pop,
-                  pop_domnames = "district",
+                  pop_domains = "district",
                   pop_weights = "hhsize")
 
 # full data of highest rate below threshold by rank (descending order)
