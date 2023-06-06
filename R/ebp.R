@@ -294,6 +294,7 @@ ebp <- function(fixed,
                 benchmark = NULL,
                 benchmark_type = "ratio",
                 benchmark_level = NULL,
+                benchmark_weights = NULL, 
                 nlme_maxiter = 1000,
                 nlme_tolerance = 1e-6,
                 rescale_weights = TRUE
@@ -310,7 +311,7 @@ ebp <- function(fixed,
     custom_indicator = custom_indicator, cpus = cpus, seed = seed,
     na.rm = na.rm, weights = weights, pop_weights = pop_weights,
     weights_type = weights_type, benchmark = benchmark,
-    benchmark_type = benchmark_type, benchmark_level = benchmark_level
+    benchmark_type = benchmark_type, benchmark_level = benchmark_level, benchmark_weights = benchmark_weights  
   )
 
   # Save function call ---------------------------------------------------------
@@ -344,6 +345,7 @@ ebp <- function(fixed,
     pop_weights = pop_weights,
     weights_type = weights_type,
     benchmark_level = benchmark_level,
+    benchmark_weights = benchmark_weights, 
     nlme_maxiter = nlme_maxiter,
     nlme_tolerance = nlme_tolerance,
     rescale_weights = rescale_weights

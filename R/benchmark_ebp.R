@@ -20,12 +20,12 @@ benchmark_ebp_national <- function (point_estim, framework, fixed, benchmark,
       for (i in benchmark) {# weighted national level
         if (i == "Mean") {
           benchmark_[i] <- weighted.mean(framework$smp_data[[paste0(fixed[2])]],
-                    framework$smp_data[[framework$weights]])
+                    framework$smp_data[[framework$benchmark_weights]])
         } else if (i == "Head_Count") {
           benchmark_[i] <-
             weighted.mean(framework$smp_data[[paste0(fixed[2])]] <
                             framework$threshold,
-                          framework$smp_data[[framework$weights]])
+                          framework$smp_data[[framework$benchmark_weights]])
         }
       }
 
@@ -113,7 +113,7 @@ benchmark_ebp_level <- function (point_estim, framework, fixed, benchmark,
                   framework$smp_data[benchmark_level] == j, paste0(fixed[2])
                 ],
                 framework$smp_data[
-                  framework$smp_data[benchmark_level] == j, framework$weights
+                  framework$smp_data[benchmark_level] == j, framework$benchmark_weights
                 ])
           } else if (i == "Head_Count") {
             benchmark_[which(benchmark_[benchmark_level] == j), i] <-
@@ -122,7 +122,7 @@ benchmark_ebp_level <- function (point_estim, framework, fixed, benchmark,
                   framework$smp_data[benchmark_level] == j, paste0(fixed[2])
                 ] < framework$threshold,
                 framework$smp_data[
-                  framework$smp_data[benchmark_level] == j, framework$weights
+                  framework$smp_data[benchmark_level] == j, framework$benchmark_weights
                 ])
           }
         }

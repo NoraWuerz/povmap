@@ -49,7 +49,7 @@ ebp_check1 <- function(fixed, pop_data, pop_domains, smp_data, smp_domains, L) {
 ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                        custom_indicator, cpus, seed, na.rm, weights,
                        pop_weights, weights_type, benchmark, benchmark_type,
-                       benchmark_level) {
+                       benchmark_level, benchmark_weights) {
 
 
   if (!is.null(threshold) && !(is.numeric(threshold) &&
@@ -269,7 +269,7 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                      supplied for the Mean and the Head_Count ratio. Therefore,
                      it must match with 'Mean' and 'Head_Count'."))
       }
-      if (is.null(weights)) {
+      if (is.null(weights) & is.null(benchmark_weights)) {
         stop(strwrap(prefix = " ", initial = "",
                      "The argument benchmark indicates that it is benchmarked
                      with the survey data. Please provide weights through the
@@ -355,6 +355,13 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
                    "A benchmark type is provided, but no benchmark value.
                    Please provide the argument 'benchmark' within the
                    function."))
+    }
+    if (is.character(benchmark_weights) && length(benchmark_weights) != 1 || !is.character(benchmark_weights) &&
+        !is.null(benchmark_weights)) {
+      stop(strwrap(prefix = " ", initial = "",
+                   "Weights must be a vector of length 1 and of class character
+                 specifying the variable name of a numeric variable indicating
+                 weights in the sample data. See also help(ebp)."))
     }
   }
 }

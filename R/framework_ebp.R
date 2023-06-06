@@ -9,7 +9,7 @@
 framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
                           threshold, custom_indicator = NULL, na.rm,
                           aggregate_to = NULL, weights, pop_weights,
-                          weights_type, benchmark_level, nlme_maxiter,
+                          weights_type, benchmark_level, benchmark_weights, nlme_maxiter,
                           nlme_tolerance, rescale_weights) {
 
 
@@ -17,11 +17,18 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   mod_vars <- all.vars(fixed)
   mod_vars <- mod_vars[mod_vars != as.character(fixed[2])]
   smp_vars <- c(as.character(fixed[2]), mod_vars, smp_domains, weights,
-                benchmark_level)
+                benchmark_level,benchmark_weights)
   pop_vars <- c(mod_vars, pop_domains, aggregate_to, pop_weights,
                 benchmark_level)
   smp_data <- smp_data[, smp_vars]
   weights <- weights
+  
+  if (is.null(benchmark_weights)) 
+    {benchmark_weights <- weights 
+  } else {
+    benchmark_weights <- benchmark_weights 
+  }
+
   pop_weights <- pop_weights
   fw_check1(
     pop_data = pop_data, mod_vars = mod_vars, pop_domains = pop_domains,
@@ -208,6 +215,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
     indicator_names = indicator_names,
     threshold = threshold,
     weights = weights,
+    benchmark_weights = benchmark_weights, 
     pop_weights = pop_weights,
     weights_type = weights_type,
     nlme_maxiter = nlme_maxiter,
