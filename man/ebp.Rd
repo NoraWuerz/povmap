@@ -30,7 +30,7 @@ ebp(
   benchmark_type = "ratio",
   benchmark_level = NULL,
   nlme_maxiter = 1000,
-  nlme_tolerance = 1e-06,
+  nlme_tolerance = 0.000001,
   rescale_weights = TRUE
 )
 }
