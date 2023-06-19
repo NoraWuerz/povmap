@@ -477,13 +477,6 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
     }
   }
 
-  if (!isTRUE(rescale_weights) & weights_type != "Guadarrama") {
-    stop(strwrap(prefix = " ", initial = "",
-                 "The weights are used within the lme function from nlme
-                 where a rescaling is performed by default. The option
-                 rescale_weights = FALSE is in this case not possible."))
-  }
-
   if (inherits(threshold, "function") &&
     (!is.numeric(threshold(smp_data[[paste(fixed[2])]])) ||
       length(threshold(smp_data[[paste(fixed[2])]])) != 1)) {

@@ -46,7 +46,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   }
 
   if (isTRUE(rescale_weights) && !is.null(weights)) {
-    smp_data[,weights] <- scaler(smp_data[,weights])
+    smp_data[,weights] <- scaler(smp_data[,weights], smp_data[,smp_domains])
   }
 
   # Order of domains
@@ -216,8 +216,9 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
 }
 
 # A simple scaling function for weights
-scaler <- function(x){
-  average_x <- mean(x, na.rm = TRUE)
-  y <- x / average_x
-  return(y)
+scaler <- function(x, region){
+  average_x <- tapply(x, INDEX = region, FUN = mean, na.rm = TRUE)
+  df <- merge(data.frame(x, region), data.frame(names(average_x), average_x),
+              by.x = "region", by.y = "names.average_x.")
+  return(df$x / df$average_x)
 }

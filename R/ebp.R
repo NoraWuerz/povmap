@@ -139,7 +139,8 @@
 #' the \code{lme} function from package \code{\link{nlme}}.
 #' @param rescale_weights a logical indicating if the sample weights are scaled.
 #' If \code{FALSE}, the sample weights do not change. When \code{TRUE}
-#' (default), the sample weights are rescaled such that the average weight is 1.
+#' (default), the sample weights are rescaled such that the average weight is 1
+#' within each domain.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
