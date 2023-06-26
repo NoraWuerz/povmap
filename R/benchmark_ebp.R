@@ -150,14 +150,24 @@ benchmark_ebp_level <- function (point_estim, framework, fixed, benchmark,
         for (j in benchmark_[[benchmark_level]]) {
           if (i == "Mean") {
             benchmark_[which(benchmark_[benchmark_level] == j), i] <-
-              mean(framework$smp_data[
-                framework$smp_data[benchmark_level] == j, paste0(fixed[2])
-              ])
+              weighted.mean(
+                framework$smp_data[
+                  framework$smp_data[benchmark_level] == j, paste0(fixed[2])
+                ],
+                framework$smp_data[
+                  framework$smp_data[benchmark_level] == j,
+                  framework$benchmark_weights
+                ])
           } else if (i == "Head_Count") {
             benchmark_[which(benchmark_[benchmark_level] == j), i] <-
-              mean(framework$smp_data[
-                framework$smp_data[benchmark_level] == j, paste0(fixed[2])
-              ] < framework$threshold)
+              weighted.mean(
+                framework$smp_data[
+                  framework$smp_data[benchmark_level] == j, paste0(fixed[2])
+                ] < framework$threshold,
+                framework$smp_data[
+                  framework$smp_data[benchmark_level] == j,
+                  framework$benchmark_weights
+                ])
           }
         }
       }
