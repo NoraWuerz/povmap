@@ -28,7 +28,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
     smp_data = smp_data, aggregate_to = aggregate_to, fixed = fixed,
     smp_domains = smp_domains, threshold = threshold, weights = weights,
     pop_weights = pop_weights, benchmark_level = benchmark_level,
-    benchmark_weights, weights_type = weights_type,
+    benchmark_weights = benchmark_weights, weights_type = weights_type,
     rescale_weights = rescale_weights
   )
 
