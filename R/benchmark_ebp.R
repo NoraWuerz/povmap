@@ -62,7 +62,7 @@ benchmark_ebp_national <- function (point_estim, framework, fixed, benchmark,
     } else {
       share <- as.numeric(table(framework$aggregate_to_vec)) / framework$N_pop
     }
-  } else { browser() # weiter
+  } else { 
     if (is.null(framework$aggregate_to)) {
       share <- tapply(X = framework$pop_data[[framework$pop_weights]],
                       INDEX = framework$pop_data[[framework$smp_domains]],
