@@ -9,33 +9,34 @@
 framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
                           threshold, custom_indicator = NULL, na.rm,
                           aggregate_to = NULL, weights, pop_weights,
-                          weights_type, benchmark_level, benchmark_weights, nlme_maxiter,
-                          nlme_tolerance, rescale_weights) {
+                          weights_type, benchmark_level, benchmark_weights,
+                          nlme_maxiter, nlme_tolerance, rescale_weights) {
 
 
   # Reduction of number of variables
   mod_vars <- all.vars(fixed)
   mod_vars <- mod_vars[mod_vars != as.character(fixed[2])]
-  smp_vars <- c(as.character(fixed[2]), mod_vars, smp_domains, weights,
-                benchmark_level,benchmark_weights)
+
+  if (!is.null(weights) && weights == benchmark_weights) {
+    smp_vars <- c(as.character(fixed[2]), mod_vars, smp_domains, weights,
+                  benchmark_level)
+  } else {
+    smp_vars <- c(as.character(fixed[2]), mod_vars, smp_domains, weights,
+                  benchmark_level, benchmark_weights)
+  }
+
   pop_vars <- c(mod_vars, pop_domains, aggregate_to, pop_weights,
                 benchmark_level)
   smp_data <- smp_data[, smp_vars]
   weights <- weights
-  
-  if (is.null(benchmark_weights)) 
-    {benchmark_weights <- weights 
-  } else {
-    benchmark_weights <- benchmark_weights 
-  }
-
   pop_weights <- pop_weights
   fw_check1(
     pop_data = pop_data, mod_vars = mod_vars, pop_domains = pop_domains,
     smp_data = smp_data, aggregate_to = aggregate_to, fixed = fixed,
     smp_domains = smp_domains, threshold = threshold, weights = weights,
     pop_weights = pop_weights, benchmark_level = benchmark_level,
-    weights_type = weights_type, rescale_weights = rescale_weights
+    benchmark_weights = benchmark_weights, weights_type = weights_type,
+    rescale_weights = rescale_weights
   )
 
 
@@ -53,7 +54,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
   }
 
   if (isTRUE(rescale_weights) && !is.null(weights)) {
-    smp_data[,weights] <- scaler(smp_data[,weights])
+    smp_data[,weights] <- scaler(smp_data[,weights], smp_data[,smp_domains])
   }
 
   # Order of domains
@@ -215,7 +216,7 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
     indicator_names = indicator_names,
     threshold = threshold,
     weights = weights,
-    benchmark_weights = benchmark_weights, 
+    benchmark_weights = benchmark_weights,
     pop_weights = pop_weights,
     weights_type = weights_type,
     nlme_maxiter = nlme_maxiter,
@@ -224,8 +225,9 @@ framework_ebp <- function(fixed, pop_data, pop_domains, smp_data, smp_domains,
 }
 
 # A simple scaling function for weights
-scaler <- function(x){
-  average_x <- mean(x, na.rm = TRUE)
-  y <- x / average_x
-  return(y)
+scaler <- function(x, region){
+  average_x <- tapply(x, INDEX = region, FUN = mean, na.rm = TRUE)
+  df <- merge(data.frame(x, region), data.frame(names(average_x), average_x),
+              by.x = "region", by.y = "names.average_x.")
+  return(df$x / df$average_x)
 }
