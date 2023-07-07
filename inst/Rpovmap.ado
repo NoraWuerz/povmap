@@ -160,7 +160,7 @@ file write Rscript `"save(ebp_results,file="`saveobject'")"' _n
 }
 file close Rscript 
 
-rscript using povmap.R
+rscript using povmap.R, require(povmap haven)
 
 end 
  
