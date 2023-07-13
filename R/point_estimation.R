@@ -415,8 +415,7 @@ errors_gen <- function(framework, model_par, gen_model) {
   # empty vector for new random effect in generating model
   vu <- vector(length = framework$N_pop)
   
-  # individual error term in generating model epsilon
-  epsilon <- rnorm(framework$N_pop, 0, sqrt(model_par$sigmae2est))
+
 
 
   # new random effect for out-of-sample domains
@@ -438,6 +437,9 @@ errors_gen <- function(framework, model_par, gen_model) {
     framework$n_pop[framework$dist_obs_dom]
   )
 
+  # individual error term in generating model epsilon
+  epsilon <- rnorm(framework$N_pop, 0, sqrt(model_par$sigmae2est))
+  
   return(list(epsilon = epsilon, vu = vu))
 } # End errors_gen
 
