@@ -412,11 +412,13 @@ monte_carlo <- function(transformation,
 # See Molina and Rao (2010) p. 375 (20)
 
 errors_gen <- function(framework, model_par, gen_model) {
+  # empty vector for new random effect in generating model
+  vu <- vector(length = framework$N_pop)
+  
   # individual error term in generating model epsilon
   epsilon <- rnorm(framework$N_pop, 0, sqrt(model_par$sigmae2est))
 
-  # empty vector for new random effect in generating model
-  vu <- vector(length = framework$N_pop)
+
   # new random effect for out-of-sample domains
   vu[!framework$obs_dom] <- rep(
     rnorm(
