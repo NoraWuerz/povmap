@@ -29,8 +29,13 @@
 #' The variable has to be numeric. Defaults to NULL.
 #' @param CV_level the variable level at which Coefficient of Variation should
 #' be computed
-#'
+#' @param indicator a character string containing the name of the indicator to
+#' compute the Coefficient of Variation for. Defaults to "Head_Count"
+#' @return an list containing three dataframes (first dataframe with direct an
+#' ebp CV values, second dataframe with basic statistics and third dataframe
+#' with national poverline and rate for census and survey
 #' @examples
+#' \donttest{
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
@@ -55,8 +60,8 @@
 #'                        smp_data = eusilcA_smp, weights = "weight",
 #'                        pop_weights = "hhsize", CV_level = "state",
 #'                        pop_data = eusilcA_pop, pop_domains = "district")
+#' }
 #' @export
-
 
 ebp_reportdescriptives <- function(model,
                                    direct,
@@ -66,8 +71,9 @@ ebp_reportdescriptives <- function(model,
                                    threshold = NULL,
                                    weights = NULL,
                                    pop_weights = NULL,
-                                   CV_level
-                                   ){
+                                   CV_level,
+                                   indicator = "Head_Count"
+){
 
   if (is.null(threshold)) {
     threshold <- 0.6 * median(model$framework$smp_data[[paste(model$fixed[2])]])
@@ -93,8 +99,8 @@ ebp_reportdescriptives <- function(model,
   # Estimate CVs
   colnames(model$MSE)[-1] <- paste0("MSE_", colnames(model$MSE)[-1])
 
-  df <- merge(x = model$MSE[, c("Domain", "MSE_Head_Count")],
-              y = model$ind[, c("Domain", "Head_Count")],
+  df <- merge(x = model$MSE[, c("Domain", paste("MSE_",indicator,sep=""))],
+              y = model$ind[, c("Domain", indicator)],
               by = "Domain")
 
   add_df <-
@@ -102,8 +108,8 @@ ebp_reportdescriptives <- function(model,
                                      smp_df[[model$framework$smp_domains]],
                                      sum, na.rm = TRUE)),
                weights = tapply(smp_df[[weights]],
-                                    smp_df[[model$framework$smp_domains]],
-                                    sum, na.rm = TRUE))
+                                smp_df[[model$framework$smp_domains]],
+                                sum, na.rm = TRUE))
 
   df <- merge(x = df, y = add_df, by = "Domain")
 
@@ -122,30 +128,34 @@ ebp_reportdescriptives <- function(model,
   add_df <- unique(pop_df[, c("Domain", CV_level)])
 
   df <- merge(x = df, y = add_df[, c("Domain", CV_level)], by = "Domain")
-  df$CV <- df$MSE_Head_Count / df$Head_Count
+  df$CV <- df[,paste("MSE_",indicator,sep="")] / df[,indicator]
 
   # compute the cvs for census and survey at CV_level level
   naivevar_dt <- direct
-  naivevar_dt$ind$Direct_Head_Count_CV <-
-    sqrt(naivevar_dt$MSE$Head_Count) / naivevar_dt$ind$Head_Count
+  naivevar_dt$MSE$Head_Count_bench <- naivevar_dt$MSE$Head_Count
+  naivevar_dt$ind$Head_Count_bench <- naivevar_dt$ind$Head_Count
+
+  naivevar_dt$ind[,paste("Direct_",indicator,"_CV",sep="")] <-
+    sqrt(naivevar_dt$MSE[,indicator]) / naivevar_dt$ind[,indicator]
+
 
   add_df <- data.frame(unique(df[[CV_level]]))
   colnames(add_df) <- CV_level
 
   add_df$sum_weights <- tapply(X = df$weights, INDEX = df[[CV_level]],
-                                   FUN = sum, na.rm = TRUE)
+                               FUN = sum, na.rm = TRUE)
   add_df$sum_pop_weights <- tapply(X = df$pop_weights, INDEX = df[[CV_level]],
                                    FUN = sum, na.rm = TRUE)
   df <- merge(x = df, y = add_df, by = CV_level)
 
-  povrate <- weighted.mean(x = df$Head_Count, w = df$weights, na.rm = TRUE)
+  povrate <- weighted.mean(x = df[,indicator], w = df$weights, na.rm = TRUE)
 
 
   df$weights <- df$weights / df$sum_weights
   df$pop_weights <- df$pop_weights / df$sum_pop_weights
 
   df <- merge(x = df,
-              y = naivevar_dt$ind[, c("Domain", "Direct_Head_Count_CV")],
+              y = naivevar_dt$ind[, c("Domain", paste("Direct_",indicator,"_CV",sep=""))],
               by = "Domain")
 
 
@@ -153,7 +163,7 @@ ebp_reportdescriptives <- function(model,
     data.frame(indicator = paste0("CV for Area: ", unique(df[[CV_level]])),
                ebp_cv = tapply(X = df$CV * df$pop_weights,
                                INDEX = df[[CV_level]], FUN = sum, na.rm = TRUE),
-               direct_cv = tapply(X = df$Direct_Head_Count_CV * df$weights,
+               direct_cv = tapply(X = df[,paste("Direct_",indicator,"_CV",sep="")] * df$weights,
                                   INDEX = df[[CV_level]], FUN = sum,
                                   na.rm = TRUE))
 
@@ -164,24 +174,24 @@ ebp_reportdescriptives <- function(model,
                census = c(model$framework$N_pop,
                           length(unique(pop_df[[CV_level]][
                             is.na(pop_df[[CV_level]]) == FALSE
-                            ])),
+                          ])),
                           length(unique(pop_df[[pop_domains]][
                             is.na(pop_df[[model$framework$smp_domains]]) == FALSE
-                            ]))),
+                          ]))),
                survey = c(model$framework$N_smp,
                           length(unique(smp_df[[CV_level]][
                             is.na(smp_df[[CV_level]]) == FALSE
-                            ])),
+                          ])),
                           length(unique(smp_df[[model$framework$smp_domains]][
                             is.na(smp_df[[model$framework$smp_domains]]) == FALSE
-                            ]))))
+                          ]))))
 
   basic_df$census <- as.integer(basic_df$census)
   basic_df$survey <- as.integer(basic_df$survey)
 
   # compute poverty numbers
   smp_data$poor <- ifelse(model$framework$smp_data[[paste(model$fixed[2])]] <
-                          threshold, 1, 0)
+                            threshold, 1, 0)
 
   smp_data[[weights]] <- smp_data[[weights]] /
     sum(smp_data[[weights]], na.rm = TRUE)
@@ -199,6 +209,8 @@ ebp_reportdescriptives <- function(model,
 
 
 }
+
+
 
 #' Perform test for difference between survey and census means
 #'
@@ -221,8 +233,10 @@ ebp_reportdescriptives <- function(model,
 #' are at different levels (e.g.: \code{smp_data} at individual level and
 #' \code{pop_data} at household level, then \code{pop_weights} is needed for
 #' the comparison with a variable indicating household size).
-#'
+#' @return dataframe with census and survey means and test results for their
+#' difference.
 #' @examples
+#' \donttest{
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
@@ -235,6 +249,8 @@ ebp_reportdescriptives <- function(model,
 #'                pop_data = eusilcA_pop,
 #'                smp_data = eusilcA_smp,
 #'                weights = "weight")
+#'
+#' }
 #'
 #' @export
 
@@ -302,8 +318,9 @@ ebp_test_means <- function(varlist,
 #' @param model an object returned by the ebp function of type "emdi ebp",
 #' representing point and MSE estimates
 #' @param decimals the number of decimals to report on coefficient estimates
-#'
+#' @return dataframe with regression model results
 #' @examples
+#' \donttest{
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
@@ -312,9 +329,11 @@ ebp_test_means <- function(varlist,
 #'    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
 #'    house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
 #'  pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
-#'  na.rm = TRUE)
+#'  L = 2, na.rm = TRUE)
 #'
 #'ebp_reportcoef_table(ebp_model, 4)
+#'
+#' }
 #'
 #' @export
 
@@ -383,8 +402,13 @@ ebp_reportcoef_table <- function(model,
 #' target areas to produce from `byrank_indicator` ordering.
 #' @param head a logical, if `TRUE` the top `number_to_list` results will be
 #' returned and if `FALSE` the bottom `number_to_list` will be returned
+#' @param indicator a character string containing the name of the indicator to rank.
+#' Defaults to "Head_Count"
+#' @return dataframe containing population size, head count values and counts of
+#' poor population
 #'
 #' @examples
+#' \donttest{
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
@@ -393,7 +417,7 @@ ebp_reportcoef_table <- function(model,
 #'     unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
 #'     house_allow + cap_inv + tax_adj,
 #'  pop_data = eusilcA_pop, pop_domains = "district",
-#'  smp_data = eusilcA_smp, smp_domains = "district",
+#'  smp_data = eusilcA_smp, smp_domains = "district", L = 2,
 #'  weights = "weight", weights_type = "nlme", na.rm = TRUE,
 #'  pop_weights = "hhsize")
 #'
@@ -417,6 +441,7 @@ ebp_reportcoef_table <- function(model,
 #'                   pop_weights = "hhsize",
 #'                   number_to_list = 10,
 #'                   head = FALSE)
+#' }
 #'
 #' @export
 
@@ -427,14 +452,10 @@ ebp_report_byrank <- function(model,
                               pop_weights = NULL,
                               byrank_indicator = "count",
                               number_to_list = NULL,
-                              head = TRUE){
+                              head = TRUE,
+                              indicator = "Head_Count"){
 
-  if (is.null(pop_weights)) {
-    pop_data$pop_weights <- rep(1, nrow(pop_data))
-    pop_weights <- "pop_weights"
-  }
-
-  # compute population totals
+  ### compute population totals
   pop_data <- pop_data[, c(pop_domains, pop_weights)]
 
   result_dt <- tapply(X = pop_data[[pop_weights]],
@@ -442,32 +463,52 @@ ebp_report_byrank <- function(model,
                       FUN = sum,
                       na.rm = TRUE)
 
-  result_dt <- data.frame(Domain = rownames(as.data.frame(result_dt)),
-                          population = as.data.frame(result_dt)[[1]])
+  result_dt <- as.data.frame(result_dt)
 
-  # include the EBP Head_Count
+  result_dt <- data.frame(domain = rownames(result_dt),
+                          population = result_dt[[1]])
+
+  pop_data[[pop_domains]] <- as.character(pop_data[[pop_domains]])
+
+  ### include the EBP Head_Count
+
+
   result_dt <- merge(x = result_dt,
-                     y = model$ind[, c("Domain", "Head_Count")], by = "Domain")
-  result_dt$poor_count <- result_dt$Head_Count * result_dt$population
+                     y = model$ind[, c("Domain", indicator)],
+                     by.x = "domain",
+                     by.y = "Domain")
 
-  # rank order the table as requested
+  result_dt$poor_count <- result_dt[,indicator] * result_dt$population
+
+  ### rank order the table as requested
   if (byrank_indicator == "count") {
+
     result_dt <- result_dt[order(-result_dt$poor_count),]
+
   } else {
-    result_dt <- result_dt[order(-result_dt$Head_Count),]
+
+    result_dt <- result_dt[order(-result_dt[,indicator]),]
+
   }
 
   if (is.null(number_to_list)){
+
     number_to_list <- nrow(result_dt)
+
   }
 
   if (head == TRUE) {
+
     result_dt <- head(result_dt, number_to_list)
+
   } else if (head == FALSE) {
+
     result_dt <- tail(result_dt, number_to_list)
   }
 
+
   return(result_dt)
+
 }
 
 #' Coefficient of Variation (CV) estimations for Unit EBP Model Headcount
@@ -508,8 +549,10 @@ ebp_report_byrank <- function(model,
 #' be chosen.
 #' @param B number of bootstrap iterations for variance estimation. Defaults
 #' to number of bootstrap iteration in ebp obeject (specified in \code{model}).
+#' @return dataframe containing different types of CV values for the headcount
 #'
 #' @examples
+#' \donttest{
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
@@ -526,6 +569,7 @@ ebp_report_byrank <- function(model,
 #'
 #' # compute CV table
 #' ebp_compute_cv(model = ebp_model, calibvar = "gender")
+#' }
 #'
 #'@export
 #'@importFrom survey svydesign svymean
@@ -576,11 +620,11 @@ ebp_compute_cv <- function(model,
 
   # HT estimator CV for direct estimate
   direct_ht <- povmap::direct(y = as.character(model$fixed[[2]]),
-                             smp_data = model$framework$smp_data,
-                             smp_domains = model$framework$smp_domains,
-                             weights = model$call$weights,
-                             threshold = threshold,
-                             var = TRUE, na.rm = TRUE, HT = T)
+                              smp_data = model$framework$smp_data,
+                              smp_domains = model$framework$smp_domains,
+                              weights = model$call$weights,
+                              threshold = threshold,
+                              var = TRUE, na.rm = TRUE, HT = T)
 
   direct_ht <-
     data.frame(Domain = direct_ht$ind$Domain,
@@ -618,10 +662,10 @@ ebp_compute_cv <- function(model,
   deff_adjust <- attr(deff_adjust, "deff")[1,1]
 
   direct_naive <- povmap::direct(y = as.character(model$fixed[[2]]),
-                                smp_data = model$framework$smp_data,
-                                smp_domains = model$framework$smp_domains,
-                                design = designvar, weights = model$call$weights,
-                                threshold = threshold, var = TRUE, B = B)
+                                 smp_data = model$framework$smp_data,
+                                 smp_domains = model$framework$smp_domains,
+                                 design = designvar, weights = model$call$weights,
+                                 threshold = threshold, var = TRUE, B = B)
 
   direct_naive <-
     data.frame(Domain = direct_naive$ind$Domain,
@@ -646,8 +690,8 @@ ebp_compute_cv <- function(model,
                               "EBP_Head_Count_CV")]
   } else {
     result_dt <- result_dt[,c("Domain", "Direct_Head_Count", "EBP_Head_Count",
-                            "HT_Head_Count_CV", "CB_Head_Count_CV",
-                            "DesignEffect_CV", "EBP_Head_Count_CV")]
+                              "HT_Head_Count_CV", "CB_Head_Count_CV",
+                              "DesignEffect_CV", "EBP_Head_Count_CV")]
   }
 
   return(result_dt)
@@ -661,9 +705,11 @@ ebp_compute_cv <- function(model,
 #' skewness and kurtosis of the random and idiosyncratic error terms
 #'
 #' @param model an object returned by the ebp function of type "emdi ebp"
+#' @return dataframe with marginal R-square, conditional R-squared as well as
+#' the skewness and kurtosis of the random and idiosyncratic error term
 #'
 #' @examples
-#'
+#' \donttest{
 #' data("eusilcA_pop")
 #' data("eusilcA_smp")
 #'
@@ -672,10 +718,11 @@ ebp_compute_cv <- function(model,
 #'    unempl_ben + age_ben + surv_ben + sick_ben + dis_ben + rent + fam_allow +
 #'    house_allow + cap_inv + tax_adj, pop_data = eusilcA_pop,
 #'  pop_domains = "district", smp_data = eusilcA_smp, smp_domains = "district",
-#'  na.rm = TRUE
+#'  L = 2, na.rm = TRUE
 #'  )
 #'
 #'  ebp_normalityfit(model = ebp_model)
+#' }
 #'
 #' @export
 #' @importFrom MuMIn r.squaredGLMM

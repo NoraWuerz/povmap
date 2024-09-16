@@ -27,12 +27,17 @@ are at different levels (e.g.: \code{smp_data} at individual level and
 \code{pop_data} at household level, then \code{pop_weights} is needed for
 the comparison with a variable indicating household size).}
 }
+\value{
+dataframe with census and survey means and test results for their
+difference.
+}
 \description{
 This function computes weighted means of the same set of variables within the
 census and the survey. A test for difference of the means are performed for
 each variable with two-tailed p-values returned.
 }
 \examples{
+\donttest{
 data("eusilcA_pop")
 data("eusilcA_smp")
 
@@ -45,5 +50,7 @@ ebp_test_means(varlist = variables,
                pop_data = eusilcA_pop,
                smp_data = eusilcA_smp,
                weights = "weight")
+
+}
 
 }

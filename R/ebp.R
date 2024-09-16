@@ -127,8 +127,9 @@
 #' chosen indicators. In this case, survey weights (\code{weights}) are needed.
 #' Benchmarking is available for \code{"Mean"} and \code{"Head_Count"}.
 #' @param benchmark_type a character indicating the type of benchmarking. Types
-#' that can be chosen (i) Raking ("\code{raking}") and (ii) Ratio adjustment
-#' ("\code{ratio}"). Defaults to "\code{ratio}"
+#' that can be chosen (i) Raking ("\code{raking}"), (ii) Ratio adjustment
+#' ("\code{ratio}"), and for head count, ratio adjustment of the complement
+#' ("\code{ratio_complement}". Defaults to "\code{ratio}"
 #' @param benchmark_level a character indicating the level at which the
 #' benchmarking is performed. This name must be represented in the sample and
 #' population data as variable name.
@@ -138,13 +139,33 @@
 #' internal benchmarking).
 #' @param nlme_maxiter an integer indicating the maximum number of iterations
 #' the \code{lme} function from package \code{\link{nlme}} will run for
-#' parameter convergence.
-#' @param nlme_tolerance an integer indicating the tolerance criterium for the
-#' the \code{lme} function from package \code{\link{nlme}}.
+#' parameter convergence. Defaults to 1000. 
+#' @param nlme_tolerance a real number indicating the tolerance criterion for the
+#' the \code{lme} function from package \code{\link{nlme}}. Defaults to 1e^-6. 
+#' @param nlme_msmaxiter an integer indicating the maximum number of iterations
+#' for the optimization step of the \code{lme} function from package \code{\link{nlme}} 
+#' will run for parameter convergence. Defaults to 1000. 
+#' @param nlme_mstol a real number indicating the tolerance criterion for the
+#' the optimization step of the \code{lme} function from package \code{\link{nlme}}. 
+#' Defaults to 1e^-7. 
+#' @param nlme_method a string indicating the method to be used by the \code{lme}
+#' function from package \code{\link{nlme}}, either "REML" (the default) or "ML".
+#' @param nlme_opt a string indicating the optimizer to be used by the \code{lme}
+#' function from package \code{\link{nlme}}, either "nlminb" (the default) or "optim".
+#' @param nlme_optimmethod a string indicating the optimization method to be used 
+#' with the optim optimizer the \code{lme} function from packages \code{\link{nlme}} and  
+#' \code{\link{optim}} Defaults to "BFGS".   
+#' @param nlme_returnobject a logical indicating whether the fitted object should 
+#' be returned with a warning (instead of an error via stop()) when the maximum 
+#' number of iterations is reached without convergence of the algorithm. Defaults 
+#' to FALSE 
 #' @param rescale_weights a logical indicating if the sample weights are scaled.
 #' If \code{FALSE} (default), the sample weights do not change. When \code{TRUE}
 #' , the sample weights are rescaled such that the average weight is 1
 #' within each domain.
+#' @param Ydump a string specifying the name of a .csv file to save all simulated
+#' values of the dependent value, model predictions, and error terms used for
+#' point estimation.
 #' @return An object of class "ebp", "emdi" that provides estimators for
 #' regional disaggregated indicators and optionally corresponding MSE estimates.
 #' Several generic functions have methods for the returned object. For a full
@@ -227,7 +248,7 @@
 #'       my_min = function(y) {
 #'         min(y)
 #'       }
-#'     ), na.rm = TRUE, cpus = 1
+#'     ), na.rm = TRUE, cpus = 1, nlme_opt="optim" 
 #' )
 #'
 #' # Example 3: With default setting but na.rm=TRUE under informative sampling.
@@ -270,8 +291,8 @@
 #' @importFrom parallelMap parallelStop parallelLapply parallelLibrary
 #' @importFrom parallel detectCores clusterSetRNGStream
 #' @importFrom stats as.formula dnorm lm median model.matrix na.omit optimize
-#' qnorm quantile residuals rnorm sd fitted
-#' @importFrom utils flush.console
+#' qnorm quantile residuals rnorm sd fitted ave
+#' @importFrom utils flush.console write.table write.csv
 
 ebp <- function(fixed,
                 pop_data,
@@ -301,8 +322,15 @@ ebp <- function(fixed,
                 benchmark_level = NULL,
                 benchmark_weights = NULL,
                 nlme_maxiter = 1000,
-                nlme_tolerance = 1e-6,
-                rescale_weights = FALSE
+                nlme_tolerance = 0.000001,
+                nlme_opt = "nlminb",
+                nlme_optimmethod = "BFGS", 
+                nlme_method = "REML",
+                nlme_mstol = 0.0000001,
+                nlme_msmaxiter = 1000, 
+                nlme_returnobject = FALSE, 
+                rescale_weights = FALSE,
+                Ydump = NULL
                 ) {
 
   ebp_check1(
@@ -359,6 +387,12 @@ ebp <- function(fixed,
     benchmark_weights = benchmark_weights,
     nlme_maxiter = nlme_maxiter,
     nlme_tolerance = nlme_tolerance,
+    nlme_opt = nlme_opt,
+    nlme_optimmethod = nlme_optimmethod, 
+    nlme_method = nlme_method, 
+    nlme_mstol=nlme_mstol, 
+    nlme_msmaxiter = nlme_msmaxiter, 
+    nlme_returnobject = nlme_returnobject, 
     rescale_weights = rescale_weights
   )
 
@@ -372,7 +406,8 @@ ebp <- function(fixed,
     transformation = transformation,
     interval = interval,
     L = L,
-    keep_data = TRUE
+    keep_data = TRUE,
+    Ydump = Ydump
   )
 
   # benchmarking
@@ -393,14 +428,27 @@ ebp <- function(fixed,
         benchmark_type = benchmark_type,
         benchmark_level = benchmark_level)
     }
-
+    
+    if (any(names(point_estim$ind) %in% c("Mean_bench"))) {
+      if (any(is.na(point_estim$ind$Mean_bench))) {
+        message(strwrap(prefix = " ", initial = "",
+                        "Benchmark point estimates for
+                          Mean contain missing values. Please check source data"))
+      }
+    }
+    
     if (any(names(point_estim$ind) %in% c("Head_Count_bench"))) {
-        if(!all(point_estim$ind$Head_Count_bench >= 0 &
-              point_estim$ind$Head_Count_bench <= 1)){
-          message(strwrap(prefix = " ", initial = "",
-                          "Please note that benchmark point estimates for
-                          Head_Count are without the expected range [0,1]."))
-        }
+      if (any(is.na(point_estim$ind$Head_Count_bench))) {
+        message(strwrap(prefix = " ", initial = "",
+                        "Benchmark point estimates for
+                          Head_Count contain missing values. Please check source data"))
+      }
+      else if(!all(point_estim$ind$Head_Count_bench >= 0 &
+                   point_estim$ind$Head_Count_bench <= 1)){
+        message(strwrap(prefix = " ", initial = "",
+                        "Please note that benchmark point estimates for
+                          Head_Count are outside the expected range [0,1]."))
+      }
     }
   }
 
@@ -437,6 +485,7 @@ ebp <- function(fixed,
         "shift_par"
       )],
       model = point_estim$model,
+      model_par = point_estim$model_par,
       framework = framework[c(
         "N_dom_unobs",
         "N_dom_smp",
@@ -462,6 +511,7 @@ ebp <- function(fixed,
         "shift_par"
       )],
       model = point_estim$model,
+      model_par = point_estim$model_par,
       framework = framework[c(
         "N_dom_unobs",
         "N_dom_smp",

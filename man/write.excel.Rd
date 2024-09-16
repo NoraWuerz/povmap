@@ -7,16 +7,17 @@
 \usage{
 write.excel(
   object,
-  file = "excel_output.xlsx",
+  file = NULL,
   indicator = "all",
   MSE = FALSE,
   CV = FALSE,
-  split = FALSE
+  split = FALSE,
+  model = FALSE
 )
 
 write.ods(
   object,
-  file = "ods_output.ods",
+  file = NULL,
   indicator = "all",
   MSE = FALSE,
   CV = FALSE,
@@ -53,6 +54,9 @@ Defaults to \code{FALSE}.}
 to different sheets in the Excel file. In \code{write.ods} \code{TRUE} will
 result in different files for point estimates and their precisions.
 Defaults to \code{FALSE}.}
+
+\item{model}{logical if \code{TRUE}, the estimation model is exported.
+#' Defaults to \code{FALSE}.}
 }
 \value{
 An Excel file is created in your working directory, or at the given
@@ -85,7 +89,8 @@ To check if a zip application is available they recommend the command
 \code{shell("zip")}.
 }
 \examples{
-\dontrun{
+
+\donttest{
 # Loading data - population and sample data
 data("eusilcA_pop")
 data("eusilcA_smp")
@@ -112,22 +117,14 @@ emdi_model <- ebp(
 
 # Example 1: Export estimates for all indicators and uncertainty measures
 # and diagnostics to Excel
-write.excel(emdi_model,
-  file = "excel_output_all.xlsx", indicator = "all",
-  MSE = TRUE, CV = TRUE
-)
+write.excel(emdi_model, indicator = "all",  MSE = TRUE, CV = TRUE)
 
 # Example 2: Single Excel sheets for point, MSE and CV estimates
-write.excel(emdi_model,
-  file = "excel_output_all_split.xlsx",
-  indicator = "all", MSE = TRUE, CV = TRUE, split = TRUE
-)
+write.excel(emdi_model, indicator = "all", MSE = TRUE, CV = TRUE,
+            split = TRUE)
 
-# Example 3: Same as example 1 but for an ODS output
-write.ods(emdi_model,
-  file = "ods_output_all.ods", indicator = "all",
-  MSE = TRUE, CV = TRUE
-)
+# Example 3: Same as example 1 but for an ODS output, skipped due to lack of zip app 
+# write.ods(emdi_model, indicator = "all", MSE = TRUE, CV = TRUE)
 }
 
 }

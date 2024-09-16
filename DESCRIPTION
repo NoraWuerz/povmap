@@ -1,21 +1,23 @@
 Package: povmap
-Title: Extension to the package emdi
-Version: 1.0.0
-Date: 2022-11-30
-Authors@R: c(person("Ifeanyi", "Edochie", role="aut", email = "iedochie@worldbank.org"),
+Title: Extension to the 'emdi' Package
+Version: 1.0.1
+Date: 2024-01-18
+Authors@R: c(person("Ifeanyi", "Edochie", role=c("aut", "cre"), email = "iedochie@worldbank.org"),
   person("David", "Newhouse", role="aut", email = "dnewhouse@worldbank.org"), 
-  person("Nora", "Würz", role=c("aut", "cre"), email = "nora.wuerz@uni-bamberg.de"), 
+  person("Nora", "Würz", role="aut", email = "nora.wuerz@uni-bamberg.de"), 
   person("Timo", "Schmid", role="aut", email = "timo.schmid@fu-berlin.de"))
-Description: The R package povmap is designed to facilitate the production of 
-  small area estimates of means and poverty headcount rates. It adds several 
-  new features to the emdi package. These include new options for incorporating 
-  survey weights, ex-post benchmarking of estimates, two additional 
-  transformations, several new convenient functions to assist with reporting 
-  results, and a wrapper function to facilitate access from Stata.
+Description: The R package 'povmap' supports small area estimation of means and 
+  poverty headcount rates. It adds several new features to the 'emdi' package
+  (see "The R Package emdi for Estimating and Mapping Regionally Disaggregated 
+  Indicators" by Kreutzmann et al. (2019) <doi:10.18637/jss.v091.i07>). 
+  These include new options for incorporating survey weights, ex-post 
+  benchmarking of estimates, two additional transformations, several new 
+  convenient functions to assist with reporting results, and a wrapper function 
+  to facilitate access from 'Stata'.
 Depends:
     R (>= 4.2.0)
 License: GPL-2
-URL: https://github.com/NoraWuerz/povmap
+URL: https://github.com/SSA-Statistical-Team-Projects/povmap
 LazyData: true
 Encoding: UTF-8
 Copyright: inst/COPYRIGHTS
@@ -38,15 +40,14 @@ Imports:
     readODS,
     formula.tools,
     saeRobust,
-    spdep, 
+    spdep,
     bestNormalize,
-    survey
+    survey,
+    sf
 Suggests:
     testthat,
     R.rsp,
     simFrame,
     laeken,
-    rgeos,
-    maptools,
     graphics
 VignetteBuilder: R.rsp
