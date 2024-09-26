@@ -354,19 +354,24 @@ ebp_check2 <- function(threshold, transformation, interval, MSE, boot_type, B,
       }
     }
   }
-  if (benchmark_type != "ratio") {
-    if (benchmark_type != "raking") {
+  if (benchmark_type != "ratio" && benchmark_type != "raking" && benchmark_type != "ratio_complement") {
       stop(strwrap(prefix = " ", initial = "",
                    "The benchmark version of ebp is only available with
-                   'raking' and 'ratio'."))
-    }
-    if (is.null(benchmark)) {
+                   'raking', 'ratio', and 'ratio_complement'."))
+  }
+  
+  if (benchmark_type == "ratio_complement" && (names(benchmark)[-1] %in% "Head_Count") && max(benchmark[["Head_Count"]])>1) {
+    stop(strwrap(prefix = " ", initial = "",
+                 "When benchmarking the headcount rate with ratio_complement, the target values must lie between 0 and 1."))
+  }
+  
+  
+    if (is.null(benchmark) && benchmark_type != "ratio") {
       stop(strwrap(prefix = " ", initial = "",
                    "A benchmark type is provided, but no benchmark value.
                    Please provide the argument 'benchmark' within the
                    function."))
     }
-  }
 }
 
 
@@ -434,7 +439,7 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
   if (is.character(weights)) {
     if (!all(smp_data[[weights]] >= 0)) {
       stop(strwrap(prefix = " ", initial = "",
-                   paste0("Negativ or zero weights are included in ", weights,
+                   paste0("Negative or zero weights are included in ", weights,
                           " Please remove obersvations with weight values
                           less than or equal to zero.")))
     }
@@ -475,8 +480,7 @@ fw_check1 <- function(pop_data, mod_vars, pop_domains, smp_data, fixed,
   if (is.character(pop_weights)) {
     if (!is.numeric(pop_data[[pop_weights]])) {
       stop(strwrap(prefix = " ", initial = "",
-                   paste0("The variable ", pop_weights, " cannot be used at the
-                   same time as external benchmarking.")))
+                   paste0("The variable ", pop_weights, " must be numeric.")))
     }
   }
   if (is.character(pop_weights)) {

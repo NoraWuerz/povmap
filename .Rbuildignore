@@ -9,9 +9,12 @@ revdep
 ^revdep$
 ^\.Rprofile$
 ^CRAN-RELEASE$
+inst\sticker
 
 ^\.github$
 
 CONTRIBUTING.md
 
 ^CRAN-SUBMISSION$
+^README\.Rmd$
+README.md

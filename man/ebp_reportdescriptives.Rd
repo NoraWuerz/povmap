@@ -13,7 +13,8 @@ ebp_reportdescriptives(
   threshold = NULL,
   weights = NULL,
   pop_weights = NULL,
-  CV_level
+  CV_level,
+  indicator = "Head_Count"
 )
 }
 \arguments{
@@ -48,6 +49,14 @@ The variable has to be numeric. Defaults to NULL.}
 
 \item{CV_level}{the variable level at which Coefficient of Variation should
 be computed}
+
+\item{indicator}{a character string containing the name of the indicator to
+compute the Coefficient of Variation for. Defaults to "Head_Count"}
+}
+\value{
+an list containing three dataframes (first dataframe with direct an
+ebp CV values, second dataframe with basic statistics and third dataframe
+with national poverline and rate for census and survey
 }
 \description{
 This function estimates the coefficient of variation at level specified,
@@ -57,6 +66,7 @@ the threshold on which SAE is applied and the outcome indicator of interest
 the census and survey
 }
 \examples{
+\donttest{
 data("eusilcA_pop")
 data("eusilcA_smp")
 
@@ -81,4 +91,5 @@ ebp_reportdescriptives(model = ebp_model, direct = direct_est,
                        smp_data = eusilcA_smp, weights = "weight",
                        pop_weights = "hhsize", CV_level = "state",
                        pop_data = eusilcA_pop, pop_domains = "district")
+}
 }
